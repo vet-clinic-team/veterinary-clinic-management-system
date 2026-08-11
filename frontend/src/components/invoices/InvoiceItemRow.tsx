@@ -4,19 +4,13 @@ import type {
   UseFormRegister,
 } from "react-hook-form";
 
-
-
 import type { InvoiceFormValues } from "../../schemas/invoiceSchema";
 
 type InvoiceItemRowProps = {
   index: number;
-
   register: UseFormRegister<InvoiceFormValues>;
-
   errors: FieldErrors<InvoiceFormValues>;
-
   onRemove: (index: number) => void;
-
   canRemove: boolean;
 };
 
@@ -27,23 +21,47 @@ function InvoiceItemRow({
   onRemove,
   canRemove,
 }: InvoiceItemRowProps) {
+  const changeUnitPrice = (amount: number) => {
+    const input = document.querySelector(
+      `input[name="items.${index}.unitPrice"]`
+    ) as HTMLInputElement | null;
+
+    if (!input) return;
+
+    const currentValue = Number(input.value) || 0;
+
+    let newValue: number;
+
+    if (amount > 0) {
+      newValue = Math.floor(currentValue) + 1;
+    } else {
+      newValue = Math.max(0, Math.ceil(currentValue) - 1);
+    }
+
+    input.value = String(newValue);
+
+    input.dispatchEvent(
+      new Event("input", {
+        bubbles: true,
+      })
+    );
+
+    input.dispatchEvent(
+      new Event("change", {
+        bubbles: true,
+      })
+    );
+  };
+
   return (
-    <div
-      className="
-        rounded-2xl
-        border
-        border-slate-200
-        bg-slate-50
-        p-5
-      "
-    >
+    <div>
       <div
         className="
           grid
-          grid-cols-1
           gap-6
+          grid-cols-1
           md:grid-cols-2
-          xl:grid-cols-4
+          xl:grid-cols-[2fr_1.4fr_1fr_1fr]
         "
       >
         {/* Description */}
@@ -97,12 +115,29 @@ function InvoiceItemRow({
               focus:border-blue-500
             "
           >
-            <option value="CONSULTATION">Consultation</option>
-            <option value="MEDICATION">Medication</option>
-            <option value="VACCINATION">Vaccination</option>
-            <option value="SURGERY">Surgery</option>
-            <option value="LAB_TEST">Lab Test</option>
-            <option value="OTHER">Other</option>
+            <option value="CONSULTATION">
+              Consultation
+            </option>
+
+            <option value="MEDICATION">
+              Medication
+            </option>
+
+            <option value="VACCINATION">
+              Vaccination
+            </option>
+
+            <option value="SURGERY">
+              Surgery
+            </option>
+
+            <option value="LAB_TEST">
+              Lab Test
+            </option>
+
+            <option value="OTHER">
+              Other
+            </option>
           </select>
         </div>
 
@@ -144,31 +179,77 @@ function InvoiceItemRow({
             Unit Price
           </label>
 
-          <input
-            type="number"
-            step="0.01"
-            min={0}
-            {...register(`items.${index}.unitPrice`, {
-              valueAsNumber: true,
-            })}
-            className="
-              w-full
-              rounded-xl
-              border
-              border-slate-300
-              px-4
-              py-3
-              outline-none
-              transition
-              focus:border-blue-500
-            "
-          />
+          <div className="flex">
+            <input
+  type="text"
+  inputMode="decimal"
+  {...register(`items.${index}.unitPrice`, {
+    setValueAs: (value) => {
+      if (value === "") return 0;
+
+      return Number(
+        String(value).replace(",", ".")
+      );
+    },
+  })}
+  className="
+    w-full
+    rounded-l-xl
+    border
+    border-slate-300
+    px-4
+    py-3
+    outline-none
+    transition
+    focus:border-blue-500
+  "
+/>
+
+            <div className="flex flex-col">
+              <button
+                type="button"
+                onClick={() => changeUnitPrice(1)}
+                className="
+                  rounded-tr-xl
+                  border
+                  border-l-0
+                  border-slate-300
+                  px-3
+                  py-1
+                  text-xs
+                  hover:bg-slate-50
+                "
+              >
+                ▲
+              </button>
+
+              <button
+                type="button"
+                onClick={() => changeUnitPrice(-1)}
+                className="
+                  rounded-br-xl
+                  border
+                  border-l-0
+                  border-t-0
+                  border-slate-300
+                  px-3
+                  py-1
+                  text-xs
+                  hover:bg-slate-50
+                "
+              >
+                ▼
+              </button>
+            </div>
+          </div>
 
           <p className="mt-1 text-sm text-red-500">
             {errors.items?.[index]?.unitPrice?.message}
           </p>
         </div>
       </div>
+
+      {/* Remove Item */}
 
       {canRemove && (
         <div className="mt-5 flex justify-end">

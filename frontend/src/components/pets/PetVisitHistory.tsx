@@ -9,6 +9,8 @@ import type {
 
 type PetVisitHistoryProps = {
   petId: number;
+  refreshKey?: number;
+  onAddAppointment: () => void;
 };
 
 const statusClasses: Record<
@@ -33,6 +35,8 @@ const statusClasses: Record<
 
 function PetVisitHistory({
   petId,
+  refreshKey,
+  onAddAppointment,
 }: PetVisitHistoryProps) {
   const [visits, setVisits] = useState<
     Visit[]
@@ -61,7 +65,7 @@ function PetVisitHistory({
     };
 
     fetchVisits();
-  }, [petId]);
+  }, [petId, refreshKey]);
 
   return (
     <div
@@ -75,16 +79,35 @@ function PetVisitHistory({
         shadow-sm
       "
     >
-      <h2
-        className="
-          mb-6
-          text-xl
-          font-semibold
-          text-slate-900
-        "
-      >
-        Visit History
-      </h2>
+      <div className="mb-6 flex items-center justify-between">
+        <h2
+          className="
+            text-xl
+            font-semibold
+            text-slate-900
+          "
+        >
+          Visit History
+        </h2>
+
+        <button
+          type="button"
+          onClick={onAddAppointment}
+          className="
+            rounded-lg
+            bg-blue-600
+            px-4
+            py-2
+            text-sm
+            font-medium
+            text-white
+            transition
+            hover:bg-blue-700
+          "
+        >
+          + New Appointment
+        </button>
+      </div>
 
       {loading ? (
         <p className="text-slate-500">

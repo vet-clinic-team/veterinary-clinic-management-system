@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import DashboardLayout from "../../components/layout/DashboardLayout";
 
@@ -37,6 +38,7 @@ import type { Pet } from "../../types/pet";
 import type { Veterinarian } from "../../types/veterinarian";
 
 function AppointmentsPage() {
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState<Visit[]>([]);
   const [calendarAppointments, setCalendarAppointments] =
   useState<Visit[]>([]);
@@ -47,6 +49,8 @@ function AppointmentsPage() {
   const [error, setError] = useState("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [conflictSuggestions, setConflictSuggestions] =
+  useState<string[]>([]);
 
   const [selectedAppointment, setSelectedAppointment] =
     useState<Visit | null>(null);
@@ -166,15 +170,20 @@ function AppointmentsPage() {
   }
 }, [viewMode]);
 
-  const handleAdd = () => {
-    setSelectedAppointment(null);
-    setIsModalOpen(true);
-  };
+ const handleAdd = () => {
+  setSelectedAppointment(null);
+  setConflictSuggestions([]);
+  setIsModalOpen(true);
+};
 
   const handleEdit = (appointment: Visit) => {
-    setSelectedAppointment(appointment);
-    setIsModalOpen(true);
-  };
+  setSelectedAppointment(appointment);
+  setConflictSuggestions([]);
+  setIsModalOpen(true);
+};
+  const handleViewDetail = (appointment: Visit) => {
+  navigate(`/appointments/${appointment.id}`);
+};
 
   const handleUpdateStatus = (
     appointment: Visit
@@ -187,6 +196,77 @@ function AppointmentsPage() {
   ) => {
     setMedicalAppointment(appointment);
   };
+  const findAlternativeSlots = async (
+  values: CreateVisitRequest
+): Promise<string[]> => {
+  try {
+    const data = await getVisits({
+      vetId: values.vetId,
+      page: 0,
+      size: 1000,
+    });
+
+    const candidateOffsets = [
+      -60,
+      -30,
+      30,
+      60,
+      90,
+    ];
+
+    const selectedDate = new Date(
+      values.scheduledAt
+    );
+
+    const suggestions: string[] = [];
+
+    for (const offset of candidateOffsets) {
+      const candidate = new Date(selectedDate);
+
+      candidate.setMinutes(
+        candidate.getMinutes() + offset
+      );
+
+      const hasConflict = data.content.some(
+        (visit: Visit) => {
+          if (visit.status === "CANCELLED") {
+            return false;
+          }
+
+          const visitDate = new Date(
+            visit.scheduledAt
+          );
+
+          const difference =
+            Math.abs(
+              candidate.getTime() -
+                visitDate.getTime()
+            ) / 60000;
+
+          return difference <= 15;
+        }
+      );
+
+      if (!hasConflict) {
+        suggestions.push(
+          candidate.toLocaleString("en-GB", {
+            dateStyle: "short",
+            timeStyle: "short",
+          })
+        );
+      }
+    }
+
+    return suggestions;
+  } catch (error) {
+    console.error(
+      "Failed to find alternative slots:",
+      error
+    );
+
+    return [];
+  }
+};
 
   const handleSubmit = async (
     values: CreateVisitRequest
@@ -210,11 +290,17 @@ function AppointmentsPage() {
 } catch (error: any) {
   console.error(error);
 
-  if (error.response?.status === 409) {
-    toast.error(
-      "Cannot create appointment. Another appointment exists for this veterinarian."
-    );
-  } else {
+  if (error?.response?.status === 409) {
+  const suggestions =
+    await findAlternativeSlots(values);
+
+  setConflictSuggestions(suggestions);
+
+  toast.error(
+    "Cannot save appointment. Another appointment exists for this veterinarian within 15 minutes."
+  );
+} else {
+  
     const message =
       error?.response?.data?.message ??
       "Failed to save appointment.";
@@ -473,14 +559,15 @@ const rows = appointments.map((appointment) => {
       <>
         {viewMode === "table" ? (
           <AppointmentTable
-            appointments={filteredAppointments}
-            pets={pets}
-            veterinarians={veterinarians}
-            onEdit={handleEdit}
-            onUpdateStatus={handleUpdateStatus}
-            onMedicalNotes={handleMedicalNotes}
-            onCreateFollowUp={handleCreateFollowUp}
-          />
+  appointments={filteredAppointments}
+  pets={pets}
+  veterinarians={veterinarians}
+  onEdit={handleEdit}
+  onUpdateStatus={handleUpdateStatus}
+  onMedicalNotes={handleMedicalNotes}
+  onCreateFollowUp={handleCreateFollowUp}
+  onViewDetail={handleViewDetail}
+/>
         ) : (
           <AppointmentCalendar
             appointments={calendarAppointments}
@@ -532,6 +619,30 @@ const rows = appointments.map((appointment) => {
             setSelectedAppointment(null);
           }}
         >
+          {conflictSuggestions.length > 0 && (
+  <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+    <p className="font-semibold text-amber-800">
+      Alternative Appointment Slots
+    </p>
+
+    <p className="mt-1 text-sm text-amber-700">
+      The selected veterinarian is unavailable
+      at this time. You can try one of these
+      alternative slots:
+    </p>
+
+    <div className="mt-3 flex flex-wrap gap-2">
+      {conflictSuggestions.map((suggestion) => (
+        <span
+          key={suggestion}
+          className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm font-medium text-amber-800"
+        >
+          {suggestion}
+        </span>
+      ))}
+    </div>
+  </div>
+)}
           <AppointmentForm
             initialValues={
               selectedAppointment

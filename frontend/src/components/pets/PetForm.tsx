@@ -124,50 +124,34 @@ function PetForm({
 
 
   const showSpeciesNote =
-    species === "OTHER";
+  species !== "" &&
+  species !== "CAT" &&
+  species !== "DOG";
 
-
-
-  const disableBreed =
-    species === "OTHER";
+const disableBreed =
+  species !== "" &&
+  species !== "CAT" &&
+  species !== "DOG";
 
 
 
 
 
   useEffect(() => {
+  if (
+    species !== "CAT" &&
+    species !== "DOG"
+  ) {
+    setValue("breed", "");
+  }
 
-
-    if(species === "OTHER") {
-
-
-      reset((values) => ({
-
-        ...values,
-
-        breed: "",
-
-      }));
-
-
-    }
-
-
-
-    if (species === "OTHER") {
-  setValue("breed", "");
-}
-
-if (species !== "OTHER") {
-  setValue("speciesNote", "");
-}
-
-
-  }, [
-    species,
-    reset
-  ]);
-
+  if (
+    species === "CAT" ||
+    species === "DOG"
+  ) {
+    setValue("speciesNote", "");
+  }
+}, [species, setValue]);
 
 
 

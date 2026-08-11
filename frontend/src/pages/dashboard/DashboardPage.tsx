@@ -14,6 +14,8 @@ import AlertList from "../../components/dashboard/AlertList";
 import { getDashboardSummary } from "../../services/dashboardService";
 
 import type { DashboardSummary } from "../../types/dashboard";
+import MonthlyRevenueChart from "../../components/charts/MonthlyRevenueChart";
+
 
 function DashboardPage() {
   const [summary, setSummary] =
@@ -94,17 +96,40 @@ function DashboardPage() {
             </div>
           </div>
 
-          {/* Revenue + Veterinarian */}
+         {/* Revenue */}
 
-          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <RevenueCategoryCard
-              summary={summary}
-            />
+<div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="mb-6">
+      <h2 className="text-xl font-semibold text-slate-900">
+        Monthly Revenue
+      </h2>
 
-            <AppointmentsByVetCard
-              summary={summary}
-            />
-          </div>
+      <p className="mt-1 text-sm text-slate-500">
+        Revenue for the last 12 months
+      </p>
+    </div>
+
+    <div className="h-[320px]">
+      <MonthlyRevenueChart
+        data={summary.monthlyRevenue}
+      />
+    </div>
+  </div>
+  
+
+  <RevenueCategoryCard
+    summary={summary}
+  />
+</div>
+
+{/* Veterinarian Appointments */}
+
+<div className="mt-8">
+  <AppointmentsByVetCard
+    summary={summary}
+  />
+</div>
 
           {/* Cumulative Appointments */}
 

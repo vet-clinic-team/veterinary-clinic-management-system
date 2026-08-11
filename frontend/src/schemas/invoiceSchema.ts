@@ -7,13 +7,12 @@ export const invoiceItemSchema = z.object({
     .max(255, "Description is too long."),
 
   category: z.enum([
-    "CONSULTATION",
-    "MEDICATION",
-    "VACCINATION",
-    "SURGERY",
-    "LAB_TEST",
-    "OTHER",
-  ]),
+  "CONSULTATION",
+  "VACCINATION",
+  "SURGERY",
+  "HOSPITAL",
+  "OTHER",
+]),
 
   quantity: z
     .number()

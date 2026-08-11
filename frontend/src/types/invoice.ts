@@ -6,10 +6,9 @@ export type InvoiceStatus =
 
 export type InvoiceItemCategory =
   | "CONSULTATION"
-  | "MEDICATION"
   | "VACCINATION"
   | "SURGERY"
-  | "LAB_TEST"
+  | "HOSPITAL"
   | "OTHER";
 
 

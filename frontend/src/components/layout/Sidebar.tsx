@@ -17,14 +17,14 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
-    name: "Owners",
-    path: "/owners",
-    icon: Users,
-  },
-  {
     name: "Pets",
     path: "/pets",
     icon: PawPrint,
+  },
+  {
+    name: "Owners",
+    path: "/owners",
+    icon: Users,
   },
   {
     name: "Veterinarians",

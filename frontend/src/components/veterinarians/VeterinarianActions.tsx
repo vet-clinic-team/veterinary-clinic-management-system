@@ -1,7 +1,10 @@
 import {
   Pencil,
   BarChart3,
+  Eye,
 } from "lucide-react";
+
+import { useNavigate } from "react-router-dom";
 
 import type { Veterinarian } from "../../types/veterinarian";
 
@@ -22,15 +25,26 @@ function VeterinarianActions({
   onEdit,
   onViewPerformance,
 }: VeterinarianActionsProps) {
+  const navigate = useNavigate();
+
   return (
-    <div
-      className="
-        flex
-        items-center
-        justify-center
-        gap-3
-      "
-    >
+    <div className="flex items-center justify-center gap-3">
+      {/* View Details */}
+      <button
+        type="button"
+        onClick={() =>
+          navigate(`/veterinarians/${veterinarian.id}`)
+        }
+        className="
+          text-slate-600
+          transition
+          hover:text-slate-900
+        "
+        title="View Details"
+      >
+        <Eye size={20} />
+      </button>
+
       {/* Edit */}
       <button
         type="button"

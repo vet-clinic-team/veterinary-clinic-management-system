@@ -17,16 +17,7 @@ function DashboardStats({
   summary,
 }: DashboardStatsProps) {
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-      <StatsCard
-        title="Active Patients"
-        value={summary.activePatients}
-        subtitle="Registered patients"
-        icon={PawPrint}
-        iconColor="text-violet-600"
-        iconBackground="bg-violet-100"
-      />
-
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
       <StatsCard
         title="Today's Appointments"
         value={summary.todayAppointments}
@@ -34,6 +25,15 @@ function DashboardStats({
         icon={CalendarDays}
         iconColor="text-green-600"
         iconBackground="bg-green-100"
+      />
+
+      <StatsCard
+        title="Active Patients"
+        value={summary.activePatients}
+        subtitle="Active pets"
+        icon={PawPrint}
+        iconColor="text-purple-600"
+        iconBackground="bg-purple-100"
       />
 
       <StatsCard

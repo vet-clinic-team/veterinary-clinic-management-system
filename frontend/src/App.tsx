@@ -1,16 +1,24 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import LoginPage from "./pages/auth/LoginPage";
+
 import DashboardPage from "./pages/dashboard/DashboardPage";
+
 import OwnersPage from "./pages/owners/OwnersPage";
 
 import PetsPage from "./pages/pets/PetsPage";
 import PetDetailPage from "./pages/pets/PetDetailPage";
 
 import VeterinariansPage from "./pages/veterinarians/VeterinariansPage";
+import VeterinarianDetailPage from "./pages/veterinarians/VeterinarianDetailPage";
+
 import AppointmentsPage from "./pages/appointments/AppointmentsPage";
+import VisitDetailPage from "./pages/appointments/VisitDetailPage";
+
 import VaccinationsPage from "./pages/vaccinations/VaccinationsPage";
+
 import InvoicesPage from "./pages/invoices/InvoicesPage";
+
 import SupportPage from "./pages/support/SupportPage";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -18,16 +26,19 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 function App() {
   return (
     <Routes>
+      {/* Default route */}
       <Route
         path="/"
-        element={<Navigate to="/login" replace />}
+        element={<Navigate to="/dashboard" replace />}
       />
 
+      {/* Authentication */}
       <Route
         path="/login"
         element={<LoginPage />}
       />
 
+      {/* Dashboard */}
       <Route
         path="/dashboard"
         element={
@@ -37,6 +48,7 @@ function App() {
         }
       />
 
+      {/* Owners */}
       <Route
         path="/owners"
         element={
@@ -46,6 +58,7 @@ function App() {
         }
       />
 
+      {/* Pets */}
       <Route
         path="/pets"
         element={
@@ -64,6 +77,7 @@ function App() {
         }
       />
 
+      {/* Veterinarians */}
       <Route
         path="/veterinarians"
         element={
@@ -74,6 +88,16 @@ function App() {
       />
 
       <Route
+        path="/veterinarians/:id"
+        element={
+          <ProtectedRoute>
+            <VeterinarianDetailPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Appointments / Visits */}
+      <Route
         path="/appointments"
         element={
           <ProtectedRoute>
@@ -83,6 +107,16 @@ function App() {
       />
 
       <Route
+        path="/appointments/:id"
+        element={
+          <ProtectedRoute>
+            <VisitDetailPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Vaccinations */}
+      <Route
         path="/vaccinations"
         element={
           <ProtectedRoute>
@@ -91,6 +125,7 @@ function App() {
         }
       />
 
+      {/* Invoices */}
       <Route
         path="/invoices"
         element={
@@ -100,6 +135,7 @@ function App() {
         }
       />
 
+      {/* Support */}
       <Route
         path="/support"
         element={
@@ -107,6 +143,12 @@ function App() {
             <SupportPage />
           </ProtectedRoute>
         }
+      />
+
+      {/* Unknown routes */}
+      <Route
+        path="*"
+        element={<Navigate to="/dashboard" replace />}
       />
     </Routes>
   );

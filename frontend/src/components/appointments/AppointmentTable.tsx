@@ -13,6 +13,7 @@ type AppointmentTableProps = {
   onUpdateStatus: (appointment: Visit) => void;
   onMedicalNotes: (appointment: Visit) => void;
   onCreateFollowUp: (appointment: Visit) => void;
+  onViewDetail: (appointment: Visit) => void;
 };
 
 function AppointmentTable({
@@ -23,12 +24,13 @@ function AppointmentTable({
   onUpdateStatus,
   onMedicalNotes,
   onCreateFollowUp,
+  onViewDetail,
 }: AppointmentTableProps) {
   return (
     <Card>
-      <div className="w-full overflow-x-auto rounded-xl">
-        <table className="w-full border-collapse">
-          <thead className="border-b border-slate-200 bg-slate-50">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full min-w-[900px]">
+          <thead>
             <tr>
               <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 ID
@@ -63,34 +65,32 @@ function AppointmentTable({
           <tbody>
             {appointments.length === 0 ? (
               <tr>
-               <td
-  colSpan={7}
-  className="px-6 py-16 text-center"
->
-  <div className="flex flex-col items-center">
-    <h3 className="text-lg font-semibold text-slate-700">
-      No appointments found
-    </h3>
-
-    <p className="mt-2 text-sm text-slate-500">
-      There are no appointments matching your search.
-    </p>
-  </div>
-</td>
+                <td
+                  colSpan={7}
+                  className="px-6 py-16 text-center"
+                >
+                  <p className="mt-2 text-sm text-slate-500">
+                    There are no appointments matching your search.
+                  </p>
+                </td>
               </tr>
             ) : (
               appointments.map((appointment) => {
                 const petName =
                   pets.find(
                     (pet) =>
-                      Number(pet.id) === Number(appointment.petId)
-                  )?.name ?? `Pet #${appointment.petId}`;
+                      Number(pet.id) ===
+                      Number(appointment.petId)
+                  )?.name ??
+                  `Pet #${appointment.petId}`;
 
                 const vetName =
                   veterinarians.find(
                     (vet) =>
-                      Number(vet.id) === Number(appointment.vetId)
-                  )?.name ?? `Vet #${appointment.vetId}`;
+                      Number(vet.id) ===
+                      Number(appointment.vetId)
+                  )?.name ??
+                  `Vet #${appointment.vetId}`;
 
                 return (
                   <AppointmentRow
@@ -102,6 +102,7 @@ function AppointmentTable({
                     onUpdateStatus={onUpdateStatus}
                     onMedicalNotes={onMedicalNotes}
                     onCreateFollowUp={onCreateFollowUp}
+                    onViewDetail={onViewDetail}
                   />
                 );
               })

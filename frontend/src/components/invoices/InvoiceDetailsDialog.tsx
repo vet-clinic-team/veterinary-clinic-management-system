@@ -97,7 +97,7 @@ function InvoiceDetailsDialog({
             </p>
 
             <p className="font-medium">
-              {invoice.vatRate}%
+              {(invoice.vatRate * 100).toFixed(0)}%
             </p>
           </div>
         </div>

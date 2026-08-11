@@ -4,9 +4,7 @@ type PetInfoCardProps = {
   pet: Pet;
 };
 
-function PetInfoCard({
-  pet,
-}: PetInfoCardProps) {
+function PetInfoCard({ pet }: PetInfoCardProps) {
   return (
     <div
       className="
@@ -18,125 +16,108 @@ function PetInfoCard({
         shadow-sm
       "
     >
-      <h2
-        className="
-          mb-6
-          text-xl
-          font-semibold
-          text-slate-900
-        "
-      >
+      <h2 className="text-xl font-semibold text-slate-900">
         Pet Information
       </h2>
 
-      <div
-        className="
-          grid
-          grid-cols-1
-          gap-6
-          md:grid-cols-2
-        "
-      >
-        <div>
-          <p className="text-sm text-slate-500">
-            Name
-          </p>
+      {/* Basic Information */}
+      <section className="mt-8">
+        <h3 className="mb-4 text-lg font-semibold text-slate-800">
+          Basic Information
+        </h3>
 
-          <p className="font-medium">
-            {pet.name}
-          </p>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <InfoItem
+            label="Name"
+            value={pet.name}
+          />
+
+          <InfoItem
+            label="Species"
+            value={pet.species}
+          />
+
+          <InfoItem
+            label="Breed"
+            value={pet.breed || "-"}
+          />
+
+          <InfoItem
+            label="Birth Date"
+            value={pet.birthDate}
+          />
+
+          <InfoItem
+            label="Sex"
+            value={pet.sex}
+          />
         </div>
+      </section>
 
-        <div>
-          <p className="text-sm text-slate-500">
-            Species
-          </p>
+      {/* Health Information */}
+      <section className="mt-10 border-t border-slate-200 pt-8">
+        <h3 className="mb-4 text-lg font-semibold text-slate-800">
+          Health Information
+        </h3>
 
-          <p className="font-medium">
-            {pet.species}
-          </p>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <InfoItem
+            label="Current Weight"
+            value={`${pet.weightKg} kg`}
+          />
+
+          <InfoItem
+            label="Allergies"
+            value={pet.allergies || "-"}
+          />
+
+          <InfoItem
+            label="Chronic Conditions"
+            value={pet.chronicConditions || "-"}
+          />
         </div>
+      </section>
 
-        <div>
-          <p className="text-sm text-slate-500">
-            Breed
-          </p>
+      {/* Status */}
+      <section className="mt-10 border-t border-slate-200 pt-8">
+        <h3 className="mb-4 text-lg font-semibold text-slate-800">
+          Status
+        </h3>
 
-          <p className="font-medium">
-            {pet.breed || "-"}
-          </p>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <InfoItem
+            label="Archived"
+            value={pet.archived ? "Yes" : "No"}
+          />
+
+          <InfoItem
+            label="Inactive"
+            value={pet.inactive ? "Yes" : "No"}
+          />
         </div>
+      </section>
+    </div>
+  );
+}
 
-        <div>
-          <p className="text-sm text-slate-500">
-            Birth Date
-          </p>
+type InfoItemProps = {
+  label: string;
+  value: string | number;
+};
 
-          <p className="font-medium">
-            {pet.birthDate}
-          </p>
-        </div>
+function InfoItem({
+  label,
+  value,
+}: InfoItemProps) {
+  return (
+    <div>
+      <p className="mb-1 text-sm text-slate-500">
+        {label}
+      </p>
 
-        <div>
-          <p className="text-sm text-slate-500">
-            Sex
-          </p>
-
-          <p className="font-medium">
-            {pet.sex}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-sm text-slate-500">
-            Weight
-          </p>
-
-          <p className="font-medium">
-            {pet.weightKg} kg
-          </p>
-        </div>
-
-        <div>
-          <p className="text-sm text-slate-500">
-            Allergies
-          </p>
-
-          <p className="font-medium">
-            {pet.allergies || "-"}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-sm text-slate-500">
-            Chronic Conditions
-          </p>
-
-          <p className="font-medium">
-            {pet.chronicConditions || "-"}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-sm text-slate-500">
-            Archived
-          </p>
-
-          <p className="font-medium">
-            {pet.archived ? "Yes" : "No"}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-sm text-slate-500">
-            Inactive
-          </p>
-
-          <p className="font-medium">
-            {pet.inactive ? "Yes" : "No"}
-          </p>
-        </div>
-      </div>
+      <p className="font-medium text-slate-900">
+        {value}
+      </p>
     </div>
   );
 }

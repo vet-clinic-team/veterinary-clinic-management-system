@@ -3,6 +3,7 @@ import {
   FileText,
   RefreshCw,
   GitBranchPlus,
+  Eye,
 } from "lucide-react";
 
 import type { Visit } from "../../types/visit";
@@ -15,6 +16,7 @@ type AppointmentRowProps = {
   onUpdateStatus: (appointment: Visit) => void;
   onMedicalNotes: (appointment: Visit) => void;
   onCreateFollowUp: (appointment: Visit) => void;
+  onViewDetail: (appointment: Visit) => void;
 };
 
 const statusStyles: Record<
@@ -55,10 +57,11 @@ function AppointmentRow({
   onUpdateStatus,
   onMedicalNotes,
   onCreateFollowUp,
+  onViewDetail,
 }: AppointmentRowProps) {
   return (
-    <tr className="border-b border-slate-100 hover:bg-slate-50">
-      <td className="px-4 py-4 font-medium text-slate-900">
+    <tr>
+      <td className="px-4 py-4 whitespace-nowrap">
         #{appointment.id}
       </td>
 
@@ -101,6 +104,19 @@ function AppointmentRow({
 
       <td className="px-4 py-4">
         <div className="flex items-center justify-center gap-3">
+          {/* View Detail */}
+          <button
+            type="button"
+            onClick={() =>
+              onViewDetail(appointment)
+            }
+            className="text-blue-600 transition-colors hover:text-blue-800"
+            title="View Detail"
+          >
+            <Eye size={18} />
+          </button>
+
+          {/* Edit */}
           <button
             type="button"
             onClick={() =>
@@ -112,12 +128,11 @@ function AppointmentRow({
             <Edit size={18} />
           </button>
 
+          {/* Update Status */}
           <button
             type="button"
             onClick={() =>
-              onUpdateStatus(
-                appointment
-              )
+              onUpdateStatus(appointment)
             }
             className="text-amber-600 transition-colors hover:text-amber-800"
             title="Update Status"
@@ -125,12 +140,11 @@ function AppointmentRow({
             <RefreshCw size={18} />
           </button>
 
+          {/* Medical Notes */}
           <button
             type="button"
             onClick={() =>
-              onMedicalNotes(
-                appointment
-              )
+              onMedicalNotes(appointment)
             }
             className="text-emerald-600 transition-colors hover:text-emerald-800"
             title="Medical Notes"
@@ -138,6 +152,7 @@ function AppointmentRow({
             <FileText size={18} />
           </button>
 
+          {/* Create Follow-up */}
           {appointment.status ===
             "COMPLETED" &&
             appointment.followUpDate && (
@@ -151,9 +166,7 @@ function AppointmentRow({
                 className="text-cyan-600 transition-colors hover:text-cyan-800"
                 title="Create Follow-up"
               >
-                <GitBranchPlus
-                  size={18}
-                />
+                <GitBranchPlus size={18} />
               </button>
             )}
         </div>

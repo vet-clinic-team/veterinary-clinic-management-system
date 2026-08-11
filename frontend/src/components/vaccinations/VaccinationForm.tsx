@@ -31,6 +31,20 @@ function VaccinationForm({
   onCancel,
 }: VaccinationFormProps) {
   const [pets, setPets] = useState<Pet[]>([]);
+const [selectedPetAgeWeeks, setSelectedPetAgeWeeks] =
+  useState<number | null>(null);
+  const calculatePetAgeWeeks = (pet: Pet) => {
+  const birthDate = new Date(pet.birthDate);
+  const today = new Date();
+
+  const ageInMilliseconds =
+    today.getTime() - birthDate.getTime();
+
+  return Math.floor(
+    ageInMilliseconds /
+      (1000 * 60 * 60 * 24 * 7)
+  );
+};
 
   const {
     register,
@@ -71,13 +85,26 @@ function VaccinationForm({
   // Edit mode values
 
   useEffect(() => {
-    if (initialValues) {
-      reset(initialValues);
+  if (initialValues) {
+    reset(initialValues);
+
+    const selectedPet = pets.find(
+      (pet) => pet.id === initialValues.petId
+    );
+
+    if (selectedPet) {
+      setSelectedPetAgeWeeks(
+        calculatePetAgeWeeks(selectedPet)
+      );
     }
-  }, [
-    initialValues,
-    reset,
-  ]);
+  } else {
+    setSelectedPetAgeWeeks(null);
+  }
+}, [
+  initialValues,
+  pets,
+  reset,
+]);
 
   return (
   <form
@@ -143,22 +170,37 @@ function VaccinationForm({
             </label>
 
             <select
-              {...register("petId", {
-                valueAsNumber: true,
-              })}
-              className="
-                w-full
-                rounded-xl
-                border
-                border-slate-300
-                bg-white
-                px-4
-                py-3
-                outline-none
-                transition
-                focus:border-blue-500
-              "
-            >
+  {...register("petId", {
+    valueAsNumber: true,
+  })}
+onChange={(event) => {
+  const petId = Number(event.target.value);
+
+  const selectedPet = pets.find(
+    (pet) => pet.id === petId
+  );
+
+  if (selectedPet) {
+    setSelectedPetAgeWeeks(
+      calculatePetAgeWeeks(selectedPet)
+    );
+  } else {
+    setSelectedPetAgeWeeks(null);
+  }
+}}
+  className="
+    w-full
+    rounded-xl
+    border
+    border-slate-300
+    bg-white
+    px-4
+    py-3
+    outline-none
+    transition
+    focus:border-blue-500
+  "
+>
               <option value={0}>
                 Select Pet
               </option>
@@ -172,6 +214,27 @@ function VaccinationForm({
                 </option>
               ))}
             </select>
+                    {selectedPetAgeWeeks !== null && (
+  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+    <p className="font-medium text-amber-800">
+      Vaccination Requirement
+    </p>
+
+    {selectedPetAgeWeeks >= 52 ? (
+      <p className="mt-1 text-sm text-amber-700">
+        Annual rabies vaccination is required
+        for pets over 1 year old.
+      </p>
+    ) : (
+      <p className="mt-1 text-sm text-amber-700">
+        Puppy/kitten vaccination series:
+        vaccinations should be followed at
+        6, 8 and 12 weeks.
+      </p>
+    )}
+  </div>
+)}
+        
 
             {errors.petId && (
               <p
