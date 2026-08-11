@@ -3,6 +3,7 @@ package com.efe.veterinaryclinic.owner;
 import com.efe.veterinaryclinic.common.dto.PageResponse;
 import com.efe.veterinaryclinic.common.exception.ConflictException;
 import com.efe.veterinaryclinic.common.exception.ResourceNotFoundException;
+import com.efe.veterinaryclinic.invoice.InvoiceService;
 import com.efe.veterinaryclinic.owner.dto.OwnerDetailResponse;
 import com.efe.veterinaryclinic.owner.dto.OwnerRequest;
 import com.efe.veterinaryclinic.owner.dto.OwnerResponse;
@@ -24,11 +25,14 @@ public class OwnerService {
     private final OwnerRepository ownerRepository;
     private final PetRepository petRepository;
     private final PetService petService;
+    private final InvoiceService invoiceService;
 
-    public OwnerService(OwnerRepository ownerRepository, PetRepository petRepository, PetService petService) {
+    public OwnerService(OwnerRepository ownerRepository, PetRepository petRepository, PetService petService,
+                         InvoiceService invoiceService) {
         this.ownerRepository = ownerRepository;
         this.petRepository = petRepository;
         this.petService = petService;
+        this.invoiceService = invoiceService;
     }
 
     public OwnerResponse create(OwnerRequest request) {
@@ -62,7 +66,7 @@ public class OwnerService {
                 .map(pet -> PetResponse.from(pet, petService.isInactive(pet)))
                 .toList();
 
-        return OwnerDetailResponse.from(owner, pets);
+        return OwnerDetailResponse.from(owner, pets, invoiceService.getByOwnerId(id));
     }
 
     public OwnerResponse update(Long id, OwnerRequest request) {

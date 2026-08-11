@@ -16,4 +16,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpec
 
     List<Invoice> findByStatusAndVisit_Vet_IdAndIssuedAtGreaterThanEqual(
             InvoiceStatus status, Long vetId, LocalDateTime from);
+
+    List<Invoice> findByVisit_Pet_Owner_IdOrderByIssuedAtDesc(Long ownerId);
 }

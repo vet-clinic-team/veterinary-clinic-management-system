@@ -164,6 +164,30 @@ Note: soft-deletable resources (e.g. `Pet`) have no "real delete" endpoint at al
 
 > `petCount` and `archived` are always included on owner list/detail responses (see `docs/business-rules.md`, Rule 12).
 
+**GET /api/owners/{id} — response**
+```json
+{
+  "id": 12,
+  "firstName": "Mehmet",
+  "lastName": "Demir",
+  "phone": "+90 555 123 4567",
+  "email": "mehmet.demir@example.com",
+  "address": "Istanbul, Turkey",
+  "petCount": 1,
+  "pets": [
+    { "id": 30, "name": "Boncuk", "species": "CAT", "archived": false }
+  ],
+  "invoices": [
+    { "id": 501, "visitId": 201, "issuedAt": "2026-07-04T15:00:00", "subtotal": 800.00, "vatRate": 0.18, "vatAmount": 144.00, "total": 944.00, "status": "DRAFT", "items": [], "createdAt": "2026-07-04T15:00:00", "updatedAt": "2026-07-04T15:00:00" }
+  ],
+  "archived": false,
+  "createdAt": "2026-07-04T10:00:00",
+  "updatedAt": "2026-07-04T10:00:00"
+}
+```
+
+> `invoices` is every invoice for the owner's visits (`Invoice → Visit → Pet → Owner`), newest `issuedAt` first, embedded directly rather than through a separate paginated endpoint — owner-level invoice counts are naturally small (like `pets`), and the existing `GET /api/invoices` list remains the paginated/filterable view for the standalone Invoices page (see `decisions.md` entry 44).
+
 **PATCH /api/owners/{id}/archive — conflict response (owner still has active pets)**
 ```json
 {

@@ -9,6 +9,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsStringIgnoringCase;
 import static org.hamcrest.Matchers.not;
@@ -594,6 +597,61 @@ class OwnerControllerTest {
     }
 
     @Test
+    void getOwnerDetailIncludesInvoicesForOwnersVisits() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        long ownerId = createOwner(adminToken, "owner-detail-invoices@example.com");
+
+        String petBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", "Golden Retriever", null,
+                        "2022-03-15", "FEMALE", 24.5, null, null));
+        String petResponse = mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(petBody))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long petId = objectMapper.readTree(petResponse).get("id").asLong();
+
+        String vetBody = objectMapper.writeValueAsString(
+                new VetPayload("Dr. Owner Detail Test", "Surgery", "VET-LIC-OWNER-DETAIL-001", "Mon-Fri 09:00-17:00"));
+        String vetResponse = mockMvc.perform(post("/api/vets")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(vetBody))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long vetId = objectMapper.readTree(vetResponse).get("id").asLong();
+
+        String visitBody = objectMapper.writeValueAsString(
+                new VisitPayload(petId, vetId, "2026-07-10T14:30:00", "Annual checkup"));
+        String visitResponse = mockMvc.perform(post("/api/visits")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(visitBody))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long visitId = objectMapper.readTree(visitResponse).get("id").asLong();
+
+        String invoiceBody = objectMapper.writeValueAsString(new InvoicePayload(visitId, List.of(
+                new InvoiceItemPayload("Consultation", "CONSULTATION", 1, new BigDecimal("500.00")))));
+        String invoiceResponse = mockMvc.perform(post("/api/invoices")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invoiceBody))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long invoiceId = objectMapper.readTree(invoiceResponse).get("id").asLong();
+
+        mockMvc.perform(get("/api/owners/" + ownerId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.invoices.length()").value(1))
+                .andExpect(jsonPath("$.invoices[0].id").value(invoiceId))
+                .andExpect(jsonPath("$.invoices[0].visitId").value(visitId))
+                .andExpect(jsonPath("$.invoices[0].total").value(590.00));
+    }
+
+    @Test
     void getUnknownOwnerDetailReturnsNotFound() throws Exception {
         String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
 
@@ -666,6 +724,18 @@ class OwnerControllerTest {
     private record PetPayload(Long ownerId, String name, String species, String breed, String speciesNote,
                                String birthDate, String sex, Double weightKg, String allergies,
                                String chronicConditions) {
+    }
+
+    private record VetPayload(String name, String specialty, String licenseNo, String workHours) {
+    }
+
+    private record VisitPayload(Long petId, Long vetId, String scheduledAt, String chiefComplaint) {
+    }
+
+    private record InvoicePayload(Long visitId, List<InvoiceItemPayload> items) {
+    }
+
+    private record InvoiceItemPayload(String description, String category, Integer quantity, BigDecimal unitPrice) {
     }
 
     private record LoginPayload(String email, String password) {

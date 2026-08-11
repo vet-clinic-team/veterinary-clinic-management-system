@@ -71,6 +71,12 @@ public class InvoiceService {
         return PageResponse.from(invoiceRepository.findAll(spec, pageable).map(InvoiceResponse::from));
     }
 
+    public List<InvoiceResponse> getByOwnerId(Long ownerId) {
+        return invoiceRepository.findByVisit_Pet_Owner_IdOrderByIssuedAtDesc(ownerId).stream()
+                .map(InvoiceResponse::from)
+                .toList();
+    }
+
     public InvoiceStatsResponse getStats() {
         long totalInvoices = invoiceRepository.count();
         long draft = invoiceRepository.countByStatus(InvoiceStatus.DRAFT);
