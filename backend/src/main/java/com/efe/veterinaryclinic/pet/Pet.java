@@ -30,27 +30,31 @@ public class Pet {
     @JoinColumn(name = "owner_id", nullable = false)
     private Owner owner;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private String species;
 
+    @Column(length = 100)
     private String breed;
 
+    @Column(length = 200)
     private String speciesNote;
 
     @Column(nullable = false)
     private LocalDate birthDate;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private String sex;
 
     @Column(nullable = false)
     private Double weightKg;
 
+    @Column(length = 500)
     private String allergies;
 
+    @Column(length = 500)
     private String chronicConditions;
 
     @Column(nullable = false)

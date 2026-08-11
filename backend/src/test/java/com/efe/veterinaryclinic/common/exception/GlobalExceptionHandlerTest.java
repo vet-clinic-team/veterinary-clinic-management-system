@@ -4,6 +4,7 @@ import com.efe.veterinaryclinic.common.dto.ApiErrorResponse;
 import com.efe.veterinaryclinic.owner.Owner;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.http.HttpStatus;
@@ -61,5 +62,24 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().message()).isEqualTo("Invalid sort field: string");
         assertThat(response.getBody().path()).isEqualTo("/api/owners");
+    }
+
+    @Test
+    void dataIntegrityViolationMapsTo400WithoutLeakingDbMessage() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/owners");
+        when(request.getMethod()).thenReturn("POST");
+
+        DataIntegrityViolationException ex = new DataIntegrityViolationException(
+                "ERROR: value too long for type character varying(254); column \"email\"");
+
+        ResponseEntity<ApiErrorResponse> response = handler.handleDataIntegrityViolation(ex, request);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(400);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().message()).isEqualTo("Invalid request data");
+        assertThat(response.getBody().message())
+                .doesNotContain("varying", "PSQLException", "SQL", "column", "email");
+        assertThat(response.getBody().fieldErrors()).isEmpty();
     }
 }

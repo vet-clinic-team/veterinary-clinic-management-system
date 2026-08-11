@@ -1,0 +1,17 @@
+﻿# IDE
+.idea/
+.vscode/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Logs and operating system files
+*.log
+.DS_Store
+Thumbs.db
+
+# Security scan reports
+security-reports/

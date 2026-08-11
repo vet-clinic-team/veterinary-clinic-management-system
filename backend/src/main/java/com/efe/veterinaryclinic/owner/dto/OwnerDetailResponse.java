@@ -1,5 +1,6 @@
 package com.efe.veterinaryclinic.owner.dto;
 
+import com.efe.veterinaryclinic.invoice.dto.InvoiceResponse;
 import com.efe.veterinaryclinic.owner.Owner;
 import com.efe.veterinaryclinic.pet.dto.PetResponse;
 
@@ -15,11 +16,13 @@ public record OwnerDetailResponse(
         String address,
         long petCount,
         List<PetResponse> pets,
+        List<InvoiceResponse> invoices,
+        boolean archived,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
 
-    public static OwnerDetailResponse from(Owner owner, List<PetResponse> pets) {
+    public static OwnerDetailResponse from(Owner owner, List<PetResponse> pets, List<InvoiceResponse> invoices) {
         return new OwnerDetailResponse(
                 owner.getId(),
                 owner.getFirstName(),
@@ -29,6 +32,8 @@ public record OwnerDetailResponse(
                 owner.getAddress(),
                 pets.size(),
                 pets,
+                invoices,
+                owner.isArchived(),
                 owner.getCreatedAt(),
                 owner.getUpdatedAt()
         );

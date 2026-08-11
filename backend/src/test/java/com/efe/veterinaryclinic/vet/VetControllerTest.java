@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import static org.hamcrest.Matchers.containsStringIgnoringCase;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -94,6 +96,130 @@ class VetControllerTest {
     }
 
     @Test
+    void createVetWithNameAtMaxLengthIsAccepted() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        String name = "N".repeat(100);
+        String createBody = objectMapper.writeValueAsString(
+                new VetPayload(name, "Surgery", "VET-LIC-NAME-MAX", "Mon-Fri 09:00-17:00"));
+
+        mockMvc.perform(post("/api/vets")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value(name));
+    }
+
+    @Test
+    void createVetWithNameOverMaxLengthReturnsBadRequest() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        String name = "N".repeat(101);
+        String createBody = objectMapper.writeValueAsString(
+                new VetPayload(name, "Surgery", "VET-LIC-NAME-OVER", "Mon-Fri 09:00-17:00"));
+
+        mockMvc.perform(post("/api/vets")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("name"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void createVetWithSpecialtyAtMaxLengthIsAccepted() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        String specialty = "S".repeat(100);
+        String createBody = objectMapper.writeValueAsString(
+                new VetPayload("Dr. Specialty Max", specialty, "VET-LIC-SPECIALTY-MAX", "Mon-Fri 09:00-17:00"));
+
+        mockMvc.perform(post("/api/vets")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.specialty").value(specialty));
+    }
+
+    @Test
+    void createVetWithSpecialtyOverMaxLengthReturnsBadRequest() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        String specialty = "S".repeat(101);
+        String createBody = objectMapper.writeValueAsString(
+                new VetPayload("Dr. Specialty Over", specialty, "VET-LIC-SPECIALTY-OVER", "Mon-Fri 09:00-17:00"));
+
+        mockMvc.perform(post("/api/vets")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("specialty"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void createVetWithLicenseNoAtMaxLengthIsAccepted() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        String licenseNo = "L".repeat(50);
+        String createBody = objectMapper.writeValueAsString(
+                new VetPayload("Dr. License Max", "Surgery", licenseNo, "Mon-Fri 09:00-17:00"));
+
+        mockMvc.perform(post("/api/vets")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.licenseNo").value(licenseNo));
+    }
+
+    @Test
+    void createVetWithLicenseNoOverMaxLengthReturnsBadRequest() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        String licenseNo = "L".repeat(51);
+        String createBody = objectMapper.writeValueAsString(
+                new VetPayload("Dr. License Over", "Surgery", licenseNo, "Mon-Fri 09:00-17:00"));
+
+        mockMvc.perform(post("/api/vets")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("licenseNo"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void createVetWithWorkHoursAtMaxLengthIsAccepted() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        String workHours = "W".repeat(100);
+        String createBody = objectMapper.writeValueAsString(
+                new VetPayload("Dr. WorkHours Max", "Surgery", "VET-LIC-WORKHOURS-MAX", workHours));
+
+        mockMvc.perform(post("/api/vets")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.workHours").value(workHours));
+    }
+
+    @Test
+    void createVetWithWorkHoursOverMaxLengthReturnsBadRequest() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        String workHours = "W".repeat(101);
+        String createBody = objectMapper.writeValueAsString(
+                new VetPayload("Dr. WorkHours Over", "Surgery", "VET-LIC-WORKHOURS-OVER", workHours));
+
+        mockMvc.perform(post("/api/vets")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("workHours"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
     void getVetByIdReturnsVet() throws Exception {
         String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
         long vetId = createVet(adminToken, "Dr. Detail", "VET-LIC-DETAIL");
@@ -131,6 +257,146 @@ class VetControllerTest {
         mockMvc.perform(get("/api/vets/" + vetId).header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Dr. After Update"));
+    }
+
+    @Test
+    void updateVetWithNameAtMaxLengthIsAccepted() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        long vetId = createVet(adminToken, "Dr. Update Name Max", "VET-LIC-UPD-NAME-MAX");
+        String name = "N".repeat(100);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new VetPayload(name, "Surgery", "VET-LIC-UPD-NAME-MAX", "Mon-Fri 09:00-17:00"));
+
+        mockMvc.perform(put("/api/vets/" + vetId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value(name));
+    }
+
+    @Test
+    void updateVetWithNameOverMaxLengthReturnsBadRequest() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        long vetId = createVet(adminToken, "Dr. Update Name Over", "VET-LIC-UPD-NAME-OVER");
+        String name = "N".repeat(101);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new VetPayload(name, "Surgery", "VET-LIC-UPD-NAME-OVER", "Mon-Fri 09:00-17:00"));
+
+        mockMvc.perform(put("/api/vets/" + vetId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("name"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void updateVetWithSpecialtyAtMaxLengthIsAccepted() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        long vetId = createVet(adminToken, "Dr. Update Specialty Max", "VET-LIC-UPD-SPEC-MAX");
+        String specialty = "S".repeat(100);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new VetPayload("Dr. Update Specialty Max", specialty, "VET-LIC-UPD-SPEC-MAX", "Mon-Fri 09:00-17:00"));
+
+        mockMvc.perform(put("/api/vets/" + vetId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.specialty").value(specialty));
+    }
+
+    @Test
+    void updateVetWithSpecialtyOverMaxLengthReturnsBadRequest() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        long vetId = createVet(adminToken, "Dr. Update Specialty Over", "VET-LIC-UPD-SPEC-OVER");
+        String specialty = "S".repeat(101);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new VetPayload("Dr. Update Specialty Over", specialty, "VET-LIC-UPD-SPEC-OVER", "Mon-Fri 09:00-17:00"));
+
+        mockMvc.perform(put("/api/vets/" + vetId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("specialty"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void updateVetWithLicenseNoAtMaxLengthIsAccepted() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        long vetId = createVet(adminToken, "Dr. Update License Max", "VET-LIC-UPD-LIC-MAX-OLD");
+        String licenseNo = "M".repeat(50);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new VetPayload("Dr. Update License Max", "Surgery", licenseNo, "Mon-Fri 09:00-17:00"));
+
+        mockMvc.perform(put("/api/vets/" + vetId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.licenseNo").value(licenseNo));
+    }
+
+    @Test
+    void updateVetWithLicenseNoOverMaxLengthReturnsBadRequest() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        long vetId = createVet(adminToken, "Dr. Update License Over", "VET-LIC-UPD-LIC-OVER-OLD");
+        String licenseNo = "L".repeat(51);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new VetPayload("Dr. Update License Over", "Surgery", licenseNo, "Mon-Fri 09:00-17:00"));
+
+        mockMvc.perform(put("/api/vets/" + vetId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("licenseNo"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void updateVetWithWorkHoursAtMaxLengthIsAccepted() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        long vetId = createVet(adminToken, "Dr. Update WorkHours Max", "VET-LIC-UPD-WH-MAX");
+        String workHours = "W".repeat(100);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new VetPayload("Dr. Update WorkHours Max", "Surgery", "VET-LIC-UPD-WH-MAX", workHours));
+
+        mockMvc.perform(put("/api/vets/" + vetId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.workHours").value(workHours));
+    }
+
+    @Test
+    void updateVetWithWorkHoursOverMaxLengthReturnsBadRequest() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        long vetId = createVet(adminToken, "Dr. Update WorkHours Over", "VET-LIC-UPD-WH-OVER");
+        String workHours = "W".repeat(101);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new VetPayload("Dr. Update WorkHours Over", "Surgery", "VET-LIC-UPD-WH-OVER", workHours));
+
+        mockMvc.perform(put("/api/vets/" + vetId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("workHours"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
     }
 
     @Test

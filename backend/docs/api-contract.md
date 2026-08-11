@@ -59,7 +59,7 @@ These conventions apply consistently across all modules so the frontend can driv
 | Validation failure | `400 Bad Request` | `ApiErrorResponse` with `fieldErrors` |
 | Listing endpoint with no matching data | `200 OK` | `PageResponse` with `content: []` (never `404`) |
 
-Note: soft-deletable resources (e.g. `Pet`) have no "real delete" endpoint at all — archive/activate is the only lifecycle transition, per `docs/business-rules.md`.
+Note: soft-deletable resources (e.g. `Pet`) have no "real delete" endpoint at all — archive/activate is the only lifecycle transition, per `docs/business-rules.md`. `Owner` is a partial exception: it supports archive/activate (soft delete) like `Pet`, plus a hard `DELETE` that only succeeds once the owner is already archived and has no pet records at all — see `docs/business-rules.md` Rule 12.
 
 ## 4. Enum Values Reference
 
@@ -84,14 +84,14 @@ Note: soft-deletable resources (e.g. `Pet`) have no "real delete" endpoint at al
 ```json
 {
   "email": "receptionist@clinic.com",
-  "password": "secret123"
+  "password": "<PASSWORD>"
 }
 ```
 
 **POST /api/auth/login — response**
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token": "<JWT_TOKEN>",
   "user": {
     "id": 1,
     "fullName": "Ayşe Yılmaz",
@@ -126,11 +126,13 @@ Note: soft-deletable resources (e.g. `Pet`) have no "real delete" endpoint at al
 
 | Method | Path | Roles | Description |
 |---|---|---|---|
-| GET | `/api/owners` | ADMIN, VET, RECEPTIONIST | List owners (search, pagination) |
+| GET | `/api/owners` | ADMIN, VET, RECEPTIONIST | List owners (search, active/archived filter, pagination) |
 | POST | `/api/owners` | ADMIN, RECEPTIONIST | Create owner |
 | GET | `/api/owners/{id}` | ADMIN, VET, RECEPTIONIST | Owner detail (pets, invoices) |
 | PUT | `/api/owners/{id}` | ADMIN, RECEPTIONIST | Update owner |
-| DELETE | `/api/owners/{id}` | ADMIN | Delete owner (only if owner has no pets) |
+| PATCH | `/api/owners/{id}/archive` | ADMIN, RECEPTIONIST | Archive owner (soft delete; only if owner has no active pets) |
+| PATCH | `/api/owners/{id}/activate` | ADMIN, RECEPTIONIST | Reactivate owner |
+| DELETE | `/api/owners/{id}` | ADMIN | Hard-delete owner (only if owner is archived and has no pets at all) |
 | GET | `/api/owners/stats` | ADMIN, VET, RECEPTIONIST | Owner stat-card totals over the full dataset |
 
 **POST /api/owners — request**
@@ -154,14 +156,65 @@ Note: soft-deletable resources (e.g. `Pet`) have no "real delete" endpoint at al
   "email": "mehmet.demir@example.com",
   "address": "Istanbul, Turkey",
   "petCount": 0,
+  "archived": false,
   "createdAt": "2026-07-04T10:00:00",
   "updatedAt": "2026-07-04T10:00:00"
 }
 ```
 
-> `petCount` is always included on owner list/detail responses (see `docs/business-rules.md`, Owner Deletion Rule).
+> `petCount` and `archived` are always included on owner list/detail responses (see `docs/business-rules.md`, Rule 12).
 
-**DELETE /api/owners/{id} — conflict response (owner still has pets)**
+**GET /api/owners/{id} — response**
+```json
+{
+  "id": 12,
+  "firstName": "Mehmet",
+  "lastName": "Demir",
+  "phone": "+90 555 123 4567",
+  "email": "mehmet.demir@example.com",
+  "address": "Istanbul, Turkey",
+  "petCount": 1,
+  "pets": [
+    { "id": 30, "name": "Boncuk", "species": "CAT", "archived": false }
+  ],
+  "invoices": [
+    { "id": 501, "visitId": 201, "issuedAt": "2026-07-04T15:00:00", "subtotal": 800.00, "vatRate": 0.18, "vatAmount": 144.00, "total": 944.00, "status": "DRAFT", "items": [], "createdAt": "2026-07-04T15:00:00", "updatedAt": "2026-07-04T15:00:00" }
+  ],
+  "archived": false,
+  "createdAt": "2026-07-04T10:00:00",
+  "updatedAt": "2026-07-04T10:00:00"
+}
+```
+
+> `invoices` is every invoice for the owner's visits (`Invoice → Visit → Pet → Owner`), newest `issuedAt` first, embedded directly rather than through a separate paginated endpoint — owner-level invoice counts are naturally small (like `pets`), and the existing `GET /api/invoices` list remains the paginated/filterable view for the standalone Invoices page (see `decisions.md` entry 44).
+
+**PATCH /api/owners/{id}/archive — conflict response (owner still has active pets)**
+```json
+{
+  "timestamp": "2026-07-04T10:15:00",
+  "status": 409,
+  "error": "Conflict",
+  "message": "Owner has active pet(s) and cannot be archived",
+  "path": "/api/owners/12/archive",
+  "fieldErrors": []
+}
+```
+
+> Archiving succeeds (`200 OK`, updated resource with `archived: true`) once every pet belonging to the owner is itself archived (or the owner has no pets at all). Reactivating a pet, or creating a new pet for an archived owner, automatically flips the owner back to `archived: false`.
+
+**DELETE /api/owners/{id} — conflict response (owner not archived yet)**
+```json
+{
+  "timestamp": "2026-07-04T10:18:00",
+  "status": 409,
+  "error": "Conflict",
+  "message": "Owner must be archived before it can be deleted",
+  "path": "/api/owners/12",
+  "fieldErrors": []
+}
+```
+
+**DELETE /api/owners/{id} — conflict response (owner archived but still has pet records)**
 ```json
 {
   "timestamp": "2026-07-04T10:20:00",
@@ -173,7 +226,7 @@ Note: soft-deletable resources (e.g. `Pet`) have no "real delete" endpoint at al
 }
 ```
 
-> If the owner has no pets, deletion succeeds with `204 No Content`. Pets are never cascade-deleted or auto-archived as a side effect.
+> Hard delete succeeds (`204 No Content`) only when the owner is archived **and** has zero pet records (including archived ones). Pets are never cascade-deleted or auto-archived as a side effect of owner deletion — since pets are also never hard-deleted (Rule 2), this means an owner that ever had a pet can be archived but not hard-deleted.
 
 **GET /api/owners/stats — response**
 ```json
@@ -335,12 +388,15 @@ Note: soft-deletable resources (e.g. `Pet`) have no "real delete" endpoint at al
   "treatmentNotes": "Prescribed Penicillin for 7 days",
   "followUpDate": "2026-07-11",
   "warnings": ["Pet is recorded as allergic to Penicillin"],
+  "reminderSentAt": null,
   "createdAt": "2026-07-04T14:30:00",
   "updatedAt": "2026-07-04T15:10:00"
 }
 ```
 
 > `warnings` is a derived, non-blocking field (see `docs/business-rules.md` §7): the backend does a case-insensitive substring match of each comma/semicolon-separated token in `Pet.allergies` against `treatmentNotes`. It is present on every `VisitResponse` (create/update/get/list/calendar), not only the medical-notes endpoint, and is empty when there is no match or no `allergies`/`treatmentNotes` text to compare. There is no structured `Drug` catalog in this phase — see `decisions.md` for the confirmed assumption.
+
+> `reminderSentAt` (nullable) is present on every `VisitResponse` and is stamped by a daily 09:00 scheduled job the day before `scheduledAt`, once a reminder email has been sent to the owner (see `docs/business-rules.md` §14). It is read-only — not settable via any request body — and there is no dedicated endpoint to trigger it manually; it exists purely so the Visit Detail page can show a "reminder sent" indicator. Gated by `app.reminders.enabled` (disabled in tests), same on/off pattern as `app.support.notifications.enabled`.
 
 **POST /api/visits/{id}/follow-up — request**
 

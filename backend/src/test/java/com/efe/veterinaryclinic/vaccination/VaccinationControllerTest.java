@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -153,6 +154,188 @@ class VaccinationControllerTest {
                         .content(createBody))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("vaccineType"));
+    }
+
+    @Test
+    void createVaccinationWithVaccineTypeAtMaxLengthSucceeds() throws Exception {
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "vaccination-type-max@example.com", "Max Type");
+        String vaccineType = "A".repeat(100);
+
+        String createBody = objectMapper.writeValueAsString(
+                new VaccinationPayload(petId, vaccineType, "2026-07-04T09:00:00", "LOT-MAX-1", "Dr. Ahmet Kaya"));
+
+        mockMvc.perform(post("/api/vaccinations")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.vaccineType").value(vaccineType));
+    }
+
+    @Test
+    void createVaccinationWithVaccineTypeOverMaxLengthReturnsValidationError() throws Exception {
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "vaccination-type-over@example.com", "Over Type");
+        String vaccineType = "A".repeat(101);
+
+        String createBody = objectMapper.writeValueAsString(
+                new VaccinationPayload(petId, vaccineType, "2026-07-04T09:00:00", "LOT-MAX-2", "Dr. Ahmet Kaya"));
+
+        mockMvc.perform(post("/api/vaccinations")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("vaccineType"));
+    }
+
+    @Test
+    void createVaccinationWithLotNumberAtMaxLengthSucceeds() throws Exception {
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "vaccination-lot-max@example.com", "Max Lot");
+        String lotNumber = "L".repeat(100);
+
+        String createBody = objectMapper.writeValueAsString(
+                new VaccinationPayload(petId, "ONE_YEAR", "2026-07-04T09:00:00", lotNumber, "Dr. Ahmet Kaya"));
+
+        mockMvc.perform(post("/api/vaccinations")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.lotNumber").value(lotNumber));
+    }
+
+    @Test
+    void createVaccinationWithLotNumberOverMaxLengthReturnsValidationError() throws Exception {
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "vaccination-lot-over@example.com", "Over Lot");
+        String lotNumber = "L".repeat(101);
+
+        String createBody = objectMapper.writeValueAsString(
+                new VaccinationPayload(petId, "ONE_YEAR", "2026-07-04T09:00:00", lotNumber, "Dr. Ahmet Kaya"));
+
+        mockMvc.perform(post("/api/vaccinations")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("lotNumber"));
+    }
+
+    @Test
+    void createVaccinationWithAdministeredByAtMaxLengthSucceeds() throws Exception {
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "vaccination-by-max@example.com", "Max By");
+        String administeredBy = "D".repeat(100);
+
+        String createBody = objectMapper.writeValueAsString(
+                new VaccinationPayload(petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-MAX-3", administeredBy));
+
+        mockMvc.perform(post("/api/vaccinations")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.administeredBy").value(administeredBy));
+    }
+
+    @Test
+    void createVaccinationWithAdministeredByOverMaxLengthReturnsValidationError() throws Exception {
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "vaccination-by-over@example.com", "Over By");
+        String administeredBy = "D".repeat(101);
+
+        String createBody = objectMapper.writeValueAsString(
+                new VaccinationPayload(petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-MAX-4", administeredBy));
+
+        mockMvc.perform(post("/api/vaccinations")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("administeredBy"));
+    }
+
+    @Test
+    void updateVaccinationWithVaccineTypeOverMaxLengthReturnsValidationError() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "vaccination-update-type-over@example.com", "Update Over Type");
+        long vaccinationId = createVaccination(adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-U1", "Dr. Kaya");
+
+        String updateBody = objectMapper.writeValueAsString(
+                new VaccinationPayload(petId, "A".repeat(101), "2026-07-04T09:00:00", "LOT-U1", "Dr. Kaya"));
+
+        mockMvc.perform(put("/api/vaccinations/" + vaccinationId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("vaccineType"));
+    }
+
+    @Test
+    void updateVaccinationWithLotNumberOverMaxLengthReturnsValidationError() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "vaccination-update-lot-over@example.com", "Update Over Lot");
+        long vaccinationId = createVaccination(adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-U2", "Dr. Kaya");
+
+        String updateBody = objectMapper.writeValueAsString(
+                new VaccinationPayload(petId, "ONE_YEAR", "2026-07-04T09:00:00", "L".repeat(101), "Dr. Kaya"));
+
+        mockMvc.perform(put("/api/vaccinations/" + vaccinationId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("lotNumber"));
+    }
+
+    @Test
+    void updateVaccinationWithAdministeredByOverMaxLengthReturnsValidationError() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "vaccination-update-by-over@example.com", "Update Over By");
+        long vaccinationId = createVaccination(adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-U3", "Dr. Kaya");
+
+        String updateBody = objectMapper.writeValueAsString(
+                new VaccinationPayload(petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-U3", "D".repeat(101)));
+
+        mockMvc.perform(put("/api/vaccinations/" + vaccinationId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("administeredBy"));
+    }
+
+    @Test
+    void createVaccinationWithOversizedFieldDoesNotLeakDatabaseDetails() throws Exception {
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "vaccination-leak@example.com", "Leak Check");
+
+        String createBody = objectMapper.writeValueAsString(
+                new VaccinationPayload(petId, "A".repeat(300), "2026-07-04T09:00:00", "LOT-LEAK", "Dr. Ahmet Kaya"));
+
+        String response = mockMvc.perform(post("/api/vaccinations")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(response.toLowerCase())
+                .doesNotContain("sql", "column", "varchar", "psqlexception");
     }
 
     @Test

@@ -19,6 +19,7 @@ public record VisitResponse(
         String treatmentNotes,
         LocalDate followUpDate,
         List<String> warnings,
+        LocalDateTime reminderSentAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -35,6 +36,7 @@ public record VisitResponse(
                 visit.getTreatmentNotes(),
                 visit.getFollowUpDate(),
                 AllergyWarningChecker.check(visit.getTreatmentNotes(), visit.getPet().getAllergies()),
+                visit.getReminderSentAt(),
                 visit.getCreatedAt(),
                 visit.getUpdatedAt()
         );

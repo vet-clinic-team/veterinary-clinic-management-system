@@ -3,6 +3,9 @@ package com.efe.veterinaryclinic.common.exception;
 import com.efe.veterinaryclinic.common.dto.ApiErrorResponse;
 import com.efe.veterinaryclinic.common.dto.ApiErrorResponse.FieldErrorDetail;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -19,6 +22,8 @@ import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
@@ -68,6 +73,14 @@ public class GlobalExceptionHandler {
                 .map(fieldError -> new FieldErrorDetail(fieldError.getField(), fieldError.getDefaultMessage()))
                 .toList();
         return build(HttpStatus.BAD_REQUEST, "Validation failed", request, fieldErrors);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiErrorResponse> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex, HttpServletRequest request) {
+        log.warn("Data integrity violation on {} {} - exception type: {}",
+                request.getMethod(), request.getRequestURI(), ex.getClass().getSimpleName());
+        return build(HttpStatus.BAD_REQUEST, "Invalid request data", request, List.of());
     }
 
     @ExceptionHandler(Exception.class)

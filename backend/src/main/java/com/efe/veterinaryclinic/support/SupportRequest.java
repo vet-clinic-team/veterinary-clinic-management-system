@@ -31,7 +31,7 @@ public class SupportRequest {
     @JoinColumn(name = "requested_by_user_id", nullable = false)
     private User requestedBy;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String subject;
 
     @Column(nullable = false, length = 4000)

@@ -30,3 +30,5 @@ spring.mail.port=25
 
 app.support.notification-emails=
 app.support.notifications.enabled=false
+
+app.reminders.enabled=false

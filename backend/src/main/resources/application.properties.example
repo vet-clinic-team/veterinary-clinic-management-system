@@ -47,3 +47,8 @@ spring.mail.properties.mail.smtp.starttls.enable=true
 
 app.support.notification-emails=${SUPPORT_NOTIFICATION_EMAILS:}
 app.support.notifications.enabled=${SUPPORT_NOTIFICATIONS_ENABLED:true}
+
+# Daily 09:00 job that reminds pet owners about tomorrow's scheduled visits by email.
+# Uses the same spring.mail.* config above; no-ops (logs and skips) if no JavaMailSender
+# bean is configured, same as SupportRequestNotifier.
+app.reminders.enabled=${REMINDERS_ENABLED:true}

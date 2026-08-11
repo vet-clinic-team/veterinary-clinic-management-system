@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -39,10 +40,12 @@ public class OwnerController {
     }
 
     @GetMapping
-    @Operation(summary = "List owners", description = "ADMIN, VET, RECEPTIONIST. Supports name search and pagination.")
+    @Operation(summary = "List owners", description = "ADMIN, VET, RECEPTIONIST. Supports name search, active/archived filter, and pagination.")
     public ResponseEntity<PageResponse<OwnerResponse>> list(
-            @RequestParam(required = false) String search, Pageable pageable) {
-        return ResponseEntity.ok(ownerService.list(search, pageable));
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active,
+            Pageable pageable) {
+        return ResponseEntity.ok(ownerService.list(search, active, pageable));
     }
 
     @GetMapping("/{id}")
@@ -63,8 +66,20 @@ public class OwnerController {
         return ResponseEntity.ok(ownerService.update(id, request));
     }
 
+    @PatchMapping("/{id}/archive")
+    @Operation(summary = "Archive an owner", description = "ADMIN, RECEPTIONIST. Soft delete — rejected with 409 if the owner still has active (non-archived) pets.")
+    public ResponseEntity<OwnerResponse> archive(@PathVariable Long id) {
+        return ResponseEntity.ok(ownerService.archive(id));
+    }
+
+    @PatchMapping("/{id}/activate")
+    @Operation(summary = "Reactivate an archived owner", description = "ADMIN, RECEPTIONIST.")
+    public ResponseEntity<OwnerResponse> activate(@PathVariable Long id) {
+        return ResponseEntity.ok(ownerService.activate(id));
+    }
+
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete an owner", description = "ADMIN only. Rejected with 409 if the owner still has pets.")
+    @Operation(summary = "Delete an owner", description = "ADMIN only. Owner must already be archived (409 otherwise), and rejected with 409 if the owner still has pets.")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         ownerService.delete(id);
         return ResponseEntity.noContent().build();

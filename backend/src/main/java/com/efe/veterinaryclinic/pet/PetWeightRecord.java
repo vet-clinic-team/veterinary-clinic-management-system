@@ -32,6 +32,7 @@ public class PetWeightRecord {
     @Column(nullable = false)
     private LocalDateTime recordedAt;
 
+    @Column(length = 500)
     private String note;
 
     protected PetWeightRecord() {

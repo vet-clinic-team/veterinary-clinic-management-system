@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -127,6 +128,114 @@ class SupportRequestControllerTest {
                         .content(createBody))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("OPEN"));
+    }
+
+    @Test
+    void createSupportRequestWithSubjectAtMaxLengthSucceeds() throws Exception {
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        String subject = "S".repeat(255);
+
+        String createBody = objectMapper.writeValueAsString(new CreateRequestPayload(subject, "message"));
+
+        mockMvc.perform(post("/api/support-requests")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.subject").value(subject));
+    }
+
+    @Test
+    void createSupportRequestWithSubjectOverMaxLengthReturnsValidationError() throws Exception {
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+
+        String createBody = objectMapper.writeValueAsString(new CreateRequestPayload("S".repeat(256), "message"));
+
+        mockMvc.perform(post("/api/support-requests")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("subject"));
+    }
+
+    @Test
+    void createSupportRequestWithMessageAtMaxLengthSucceeds() throws Exception {
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        String message = "M".repeat(4000);
+
+        String createBody = objectMapper.writeValueAsString(new CreateRequestPayload("subject", message));
+
+        mockMvc.perform(post("/api/support-requests")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.message").value(message));
+    }
+
+    @Test
+    void createSupportRequestWithMessageOverMaxLengthReturnsValidationError() throws Exception {
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+
+        String createBody = objectMapper.writeValueAsString(new CreateRequestPayload("subject", "M".repeat(4001)));
+
+        mockMvc.perform(post("/api/support-requests")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("message"));
+    }
+
+    @Test
+    void createSupportRequestWithOversizedFieldDoesNotLeakDatabaseDetails() throws Exception {
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+
+        String createBody = objectMapper.writeValueAsString(new CreateRequestPayload("subject", "M".repeat(5000)));
+
+        String response = mockMvc.perform(post("/api/support-requests")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(response.toLowerCase())
+                .doesNotContain("sql", "column", "varchar", "psqlexception");
+    }
+
+    @Test
+    void updateStatusWithAdminResponseAtMaxLengthSucceeds() throws Exception {
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        long requestId = createSupportRequest(vetToken, "Needs resolving", "Please help");
+        String adminResponse = "R".repeat(4000);
+
+        String statusBody = objectMapper.writeValueAsString(new StatusUpdatePayload("RESOLVED", adminResponse));
+
+        mockMvc.perform(patch("/api/support-requests/" + requestId + "/status")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(statusBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.adminResponse").value(adminResponse));
+    }
+
+    @Test
+    void updateStatusWithAdminResponseOverMaxLengthReturnsValidationError() throws Exception {
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        long requestId = createSupportRequest(vetToken, "Needs resolving", "Please help");
+
+        String statusBody = objectMapper.writeValueAsString(new StatusUpdatePayload("RESOLVED", "R".repeat(4001)));
+
+        mockMvc.perform(patch("/api/support-requests/" + requestId + "/status")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(statusBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("adminResponse"));
     }
 
     private long createSupportRequest(String token, String subject, String message) throws Exception {

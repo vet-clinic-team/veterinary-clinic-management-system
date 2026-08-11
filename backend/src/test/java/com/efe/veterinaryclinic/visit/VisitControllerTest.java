@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -102,6 +103,42 @@ class VisitControllerTest {
     }
 
     @Test
+    void createVisitWithChiefComplaintAtMaxLengthSucceeds() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "visit-complaint-max@example.com", "Max Complaint");
+        long vetId = createVet(receptionistToken, "VET-LIC-VISIT-030");
+        String chiefComplaint = "A".repeat(500);
+
+        String createBody = objectMapper.writeValueAsString(
+                new VisitPayload(petId, vetId, "2026-07-10T15:30:00", chiefComplaint));
+
+        mockMvc.perform(post("/api/visits")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.chiefComplaint").value(chiefComplaint));
+    }
+
+    @Test
+    void createVisitWithChiefComplaintOverMaxLengthReturnsValidationError() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "visit-complaint-over@example.com", "Over Complaint");
+        long vetId = createVet(receptionistToken, "VET-LIC-VISIT-031");
+        String chiefComplaint = "A".repeat(501);
+
+        String createBody = objectMapper.writeValueAsString(
+                new VisitPayload(petId, vetId, "2026-07-10T15:30:00", chiefComplaint));
+
+        mockMvc.perform(post("/api/visits")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("chiefComplaint"));
+    }
+
+    @Test
     void createVisitWithUnknownPetReturnsNotFound() throws Exception {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long vetId = createVet(receptionistToken, "VET-LIC-VISIT-004");
@@ -152,6 +189,24 @@ class VisitControllerTest {
         mockMvc.perform(get("/api/visits/" + visitId).header("Authorization", "Bearer " + receptionistToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.chiefComplaint").value("Updated complaint"));
+    }
+
+    @Test
+    void updateVisitWithChiefComplaintOverMaxLengthReturnsValidationError() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "visit-update-complaint-over@example.com", "Update Over Complaint");
+        long vetId = createVet(receptionistToken, "VET-LIC-VISIT-032");
+        long visitId = createVisit(receptionistToken, petId, vetId, "2026-07-10T17:00:00", "Initial complaint");
+
+        String updateBody = objectMapper.writeValueAsString(
+                new VisitPayload(petId, vetId, "2026-07-11T09:00:00", "A".repeat(501)));
+
+        mockMvc.perform(put("/api/visits/" + visitId)
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("chiefComplaint"));
     }
 
     @Test
@@ -269,6 +324,105 @@ class VisitControllerTest {
         mockMvc.perform(get("/api/visits/" + visitId).header("Authorization", "Bearer " + receptionistToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.diagnosis").value("Mild sprain"));
+    }
+
+    @Test
+    void updateMedicalNotesWithDiagnosisAtMaxLengthSucceeds() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        long petId = createPet(receptionistToken, "visit-diagnosis-max@example.com", "Max Diagnosis");
+        long vetId = createVet(receptionistToken, "VET-LIC-VISIT-033");
+        long visitId = createVisit(receptionistToken, petId, vetId, "2026-12-01T10:00:00", "Limping");
+        String diagnosis = "D".repeat(2000);
+
+        String notesBody = objectMapper.writeValueAsString(new MedicalNotesPayload(diagnosis, "Rest", "2026-12-08"));
+
+        mockMvc.perform(patch("/api/visits/" + visitId + "/medical-notes")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(notesBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.diagnosis").value(diagnosis));
+    }
+
+    @Test
+    void updateMedicalNotesWithDiagnosisOverMaxLengthReturnsValidationError() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        long petId = createPet(receptionistToken, "visit-diagnosis-over@example.com", "Over Diagnosis");
+        long vetId = createVet(receptionistToken, "VET-LIC-VISIT-034");
+        long visitId = createVisit(receptionistToken, petId, vetId, "2026-12-01T10:00:00", "Limping");
+
+        String notesBody = objectMapper.writeValueAsString(
+                new MedicalNotesPayload("D".repeat(2001), "Rest", "2026-12-08"));
+
+        mockMvc.perform(patch("/api/visits/" + visitId + "/medical-notes")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(notesBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("diagnosis"));
+    }
+
+    @Test
+    void updateMedicalNotesWithTreatmentNotesAtMaxLengthSucceeds() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        long petId = createPet(receptionistToken, "visit-treatment-max@example.com", "Max Treatment");
+        long vetId = createVet(receptionistToken, "VET-LIC-VISIT-035");
+        long visitId = createVisit(receptionistToken, petId, vetId, "2026-12-01T10:00:00", "Limping");
+        String treatmentNotes = "T".repeat(4000);
+
+        String notesBody = objectMapper.writeValueAsString(
+                new MedicalNotesPayload("Mild sprain", treatmentNotes, "2026-12-08"));
+
+        mockMvc.perform(patch("/api/visits/" + visitId + "/medical-notes")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(notesBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.treatmentNotes").value(treatmentNotes));
+    }
+
+    @Test
+    void updateMedicalNotesWithTreatmentNotesOverMaxLengthReturnsValidationError() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        long petId = createPet(receptionistToken, "visit-treatment-over@example.com", "Over Treatment");
+        long vetId = createVet(receptionistToken, "VET-LIC-VISIT-036");
+        long visitId = createVisit(receptionistToken, petId, vetId, "2026-12-01T10:00:00", "Limping");
+
+        String notesBody = objectMapper.writeValueAsString(
+                new MedicalNotesPayload("Mild sprain", "T".repeat(4001), "2026-12-08"));
+
+        mockMvc.perform(patch("/api/visits/" + visitId + "/medical-notes")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(notesBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("treatmentNotes"));
+    }
+
+    @Test
+    void updateMedicalNotesWithOversizedFieldDoesNotLeakDatabaseDetails() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        long petId = createPet(receptionistToken, "visit-notes-leak@example.com", "Leak Check");
+        long vetId = createVet(receptionistToken, "VET-LIC-VISIT-037");
+        long visitId = createVisit(receptionistToken, petId, vetId, "2026-12-01T10:00:00", "Limping");
+
+        String notesBody = objectMapper.writeValueAsString(
+                new MedicalNotesPayload("D".repeat(5000), "Rest", "2026-12-08"));
+
+        String response = mockMvc.perform(patch("/api/visits/" + visitId + "/medical-notes")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(notesBody))
+                .andExpect(status().isBadRequest())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(response.toLowerCase())
+                .doesNotContain("sql", "column", "varchar", "psqlexception");
     }
 
     @Test

@@ -44,14 +44,18 @@ public class Visit {
     @Column(nullable = false)
     private VisitStatus status;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String chiefComplaint;
 
+    @Column(length = 2000)
     private String diagnosis;
 
+    @Column(length = 4000)
     private String treatmentNotes;
 
     private LocalDate followUpDate;
+
+    private LocalDateTime reminderSentAt;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -85,6 +89,10 @@ public class Visit {
         this.diagnosis = diagnosis;
         this.treatmentNotes = treatmentNotes;
         this.followUpDate = followUpDate;
+    }
+
+    public void markReminderSent() {
+        this.reminderSentAt = LocalDateTime.now();
     }
 
     @PrePersist

@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+import static org.hamcrest.Matchers.containsStringIgnoringCase;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
@@ -137,6 +138,265 @@ class PetControllerTest {
     }
 
     @Test
+    void createPetWithNameAtMaxLengthIsAccepted() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "name-max-owner@example.com");
+        String name = "N".repeat(100);
+
+        String createBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, name, "DOG", "Golden Retriever", null,
+                        "2022-03-15", "FEMALE", 24.5, null, null));
+
+        mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value(name));
+    }
+
+    @Test
+    void createPetWithNameOverMaxLengthReturnsBadRequest() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "name-over-owner@example.com");
+        String name = "N".repeat(101);
+
+        String createBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, name, "DOG", "Golden Retriever", null,
+                        "2022-03-15", "FEMALE", 24.5, null, null));
+
+        mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("name"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void createPetWithSpeciesAtMaxLengthIsAccepted() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "species-max-owner@example.com");
+        String species = "S".repeat(50);
+
+        String createBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Kivi", species, null, "Exotic species note",
+                        "2023-01-01", "MALE", 0.4, null, null));
+
+        mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.species").value(species));
+    }
+
+    @Test
+    void createPetWithSpeciesOverMaxLengthReturnsBadRequest() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "species-over-owner@example.com");
+        String species = "S".repeat(51);
+
+        String createBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Kivi", species, null, "Exotic species note",
+                        "2023-01-01", "MALE", 0.4, null, null));
+
+        mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("species"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void createPetWithBreedAtMaxLengthIsAccepted() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "breed-max-owner@example.com");
+        String breed = "B".repeat(100);
+
+        String createBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", breed, null,
+                        "2022-03-15", "FEMALE", 24.5, null, null));
+
+        mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.breed").value(breed));
+    }
+
+    @Test
+    void createPetWithBreedOverMaxLengthReturnsBadRequest() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "breed-over-owner@example.com");
+        String breed = "B".repeat(101);
+
+        String createBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", breed, null,
+                        "2022-03-15", "FEMALE", 24.5, null, null));
+
+        mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("breed"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void createPetWithSpeciesNoteAtMaxLengthIsAccepted() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "speciesnote-max-owner@example.com");
+        String speciesNote = "N".repeat(200);
+
+        String createBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Kivi", "PARROT", null, speciesNote,
+                        "2023-01-01", "MALE", 0.4, null, null));
+
+        mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.speciesNote").value(speciesNote));
+    }
+
+    @Test
+    void createPetWithSpeciesNoteOverMaxLengthReturnsBadRequest() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "speciesnote-over-owner@example.com");
+        String speciesNote = "N".repeat(201);
+
+        String createBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Kivi", "PARROT", null, speciesNote,
+                        "2023-01-01", "MALE", 0.4, null, null));
+
+        mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("speciesNote"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void createPetWithSexAtMaxLengthIsAccepted() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "sex-max-owner@example.com");
+        String sex = "S".repeat(20);
+
+        String createBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", "Golden Retriever", null,
+                        "2022-03-15", sex, 24.5, null, null));
+
+        mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.sex").value(sex));
+    }
+
+    @Test
+    void createPetWithSexOverMaxLengthReturnsBadRequest() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "sex-over-owner@example.com");
+        String sex = "S".repeat(21);
+
+        String createBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", "Golden Retriever", null,
+                        "2022-03-15", sex, 24.5, null, null));
+
+        mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("sex"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void createPetWithAllergiesAtMaxLengthIsAccepted() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "allergies-max-owner@example.com");
+        String allergies = "A".repeat(500);
+
+        String createBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", "Golden Retriever", null,
+                        "2022-03-15", "FEMALE", 24.5, allergies, null));
+
+        mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.allergies").value(allergies));
+    }
+
+    @Test
+    void createPetWithAllergiesOverMaxLengthReturnsBadRequest() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "allergies-over-owner@example.com");
+        String allergies = "A".repeat(501);
+
+        String createBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", "Golden Retriever", null,
+                        "2022-03-15", "FEMALE", 24.5, allergies, null));
+
+        mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("allergies"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void createPetWithChronicConditionsAtMaxLengthIsAccepted() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "chronic-max-owner@example.com");
+        String chronicConditions = "C".repeat(500);
+
+        String createBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", "Golden Retriever", null,
+                        "2022-03-15", "FEMALE", 24.5, null, chronicConditions));
+
+        mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.chronicConditions").value(chronicConditions));
+    }
+
+    @Test
+    void createPetWithChronicConditionsOverMaxLengthReturnsBadRequest() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "chronic-over-owner@example.com");
+        String chronicConditions = "C".repeat(501);
+
+        String createBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", "Golden Retriever", null,
+                        "2022-03-15", "FEMALE", 24.5, null, chronicConditions));
+
+        mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("chronicConditions"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
     void getPetDetailAndUpdateItThenChangesAreReflected() throws Exception {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long ownerId = createOwner(receptionistToken, "update-pet-owner@example.com");
@@ -182,6 +442,279 @@ class PetControllerTest {
 
         mockMvc.perform(get("/api/pets/999999").header("Authorization", "Bearer " + receptionistToken))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void updatePetWithNameAtMaxLengthIsAccepted() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "update-name-max-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String name = "N".repeat(100);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, name, "DOG", "Golden Retriever", null,
+                        "2022-03-15", "FEMALE", 24.5, null, null));
+
+        mockMvc.perform(put("/api/pets/" + petId)
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value(name));
+    }
+
+    @Test
+    void updatePetWithNameOverMaxLengthReturnsBadRequest() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "update-name-over-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String name = "N".repeat(101);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, name, "DOG", "Golden Retriever", null,
+                        "2022-03-15", "FEMALE", 24.5, null, null));
+
+        mockMvc.perform(put("/api/pets/" + petId)
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("name"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void updatePetWithSpeciesAtMaxLengthIsAccepted() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "update-species-max-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String species = "S".repeat(50);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", species, null, "Exotic species note",
+                        "2022-03-15", "FEMALE", 24.5, null, null));
+
+        mockMvc.perform(put("/api/pets/" + petId)
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.species").value(species));
+    }
+
+    @Test
+    void updatePetWithSpeciesOverMaxLengthReturnsBadRequest() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "update-species-over-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String species = "S".repeat(51);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", species, null, "Exotic species note",
+                        "2022-03-15", "FEMALE", 24.5, null, null));
+
+        mockMvc.perform(put("/api/pets/" + petId)
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("species"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void updatePetWithBreedAtMaxLengthIsAccepted() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "update-breed-max-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String breed = "B".repeat(100);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", breed, null,
+                        "2022-03-15", "FEMALE", 24.5, null, null));
+
+        mockMvc.perform(put("/api/pets/" + petId)
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.breed").value(breed));
+    }
+
+    @Test
+    void updatePetWithBreedOverMaxLengthReturnsBadRequest() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "update-breed-over-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String breed = "B".repeat(101);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", breed, null,
+                        "2022-03-15", "FEMALE", 24.5, null, null));
+
+        mockMvc.perform(put("/api/pets/" + petId)
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("breed"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void updatePetWithSpeciesNoteAtMaxLengthIsAccepted() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "update-speciesnote-max-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String speciesNote = "N".repeat(200);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Kivi", "PARROT", null, speciesNote,
+                        "2023-01-01", "MALE", 0.4, null, null));
+
+        mockMvc.perform(put("/api/pets/" + petId)
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.speciesNote").value(speciesNote));
+    }
+
+    @Test
+    void updatePetWithSpeciesNoteOverMaxLengthReturnsBadRequest() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "update-speciesnote-over-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String speciesNote = "N".repeat(201);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Kivi", "PARROT", null, speciesNote,
+                        "2023-01-01", "MALE", 0.4, null, null));
+
+        mockMvc.perform(put("/api/pets/" + petId)
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("speciesNote"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void updatePetWithSexAtMaxLengthIsAccepted() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "update-sex-max-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String sex = "S".repeat(20);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", "Golden Retriever", null,
+                        "2022-03-15", sex, 24.5, null, null));
+
+        mockMvc.perform(put("/api/pets/" + petId)
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sex").value(sex));
+    }
+
+    @Test
+    void updatePetWithSexOverMaxLengthReturnsBadRequest() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "update-sex-over-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String sex = "S".repeat(21);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", "Golden Retriever", null,
+                        "2022-03-15", sex, 24.5, null, null));
+
+        mockMvc.perform(put("/api/pets/" + petId)
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("sex"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void updatePetWithAllergiesAtMaxLengthIsAccepted() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "update-allergies-max-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String allergies = "A".repeat(500);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", "Golden Retriever", null,
+                        "2022-03-15", "FEMALE", 24.5, allergies, null));
+
+        mockMvc.perform(put("/api/pets/" + petId)
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.allergies").value(allergies));
+    }
+
+    @Test
+    void updatePetWithAllergiesOverMaxLengthReturnsBadRequest() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "update-allergies-over-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String allergies = "A".repeat(501);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", "Golden Retriever", null,
+                        "2022-03-15", "FEMALE", 24.5, allergies, null));
+
+        mockMvc.perform(put("/api/pets/" + petId)
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("allergies"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
+    }
+
+    @Test
+    void updatePetWithChronicConditionsAtMaxLengthIsAccepted() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "update-chronic-max-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String chronicConditions = "C".repeat(500);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", "Golden Retriever", null,
+                        "2022-03-15", "FEMALE", 24.5, null, chronicConditions));
+
+        mockMvc.perform(put("/api/pets/" + petId)
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.chronicConditions").value(chronicConditions));
+    }
+
+    @Test
+    void updatePetWithChronicConditionsOverMaxLengthReturnsBadRequest() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "update-chronic-over-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String chronicConditions = "C".repeat(501);
+
+        String updateBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", "Golden Retriever", null,
+                        "2022-03-15", "FEMALE", 24.5, null, chronicConditions));
+
+        mockMvc.perform(put("/api/pets/" + petId)
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("chronicConditions"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
     }
 
     @Test
@@ -405,6 +938,41 @@ class PetControllerTest {
                         .content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("weightKg"));
+    }
+
+    @Test
+    void addWeightRecordWithNoteAtMaxLengthIsAccepted() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "weight-note-max-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String note = "N".repeat(500);
+
+        String body = objectMapper.writeValueAsString(new WeightRecordPayload(25.0, "2026-06-01T09:00:00", note));
+
+        mockMvc.perform(post("/api/pets/" + petId + "/weight-records")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.note").value(note));
+    }
+
+    @Test
+    void addWeightRecordWithNoteOverMaxLengthReturnsBadRequest() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long ownerId = createOwner(receptionistToken, "weight-note-over-owner@example.com");
+        long petId = createPet(receptionistToken, ownerId, "Boncuk", "DOG", "Golden Retriever", null);
+        String note = "N".repeat(501);
+
+        String body = objectMapper.writeValueAsString(new WeightRecordPayload(25.0, "2026-06-01T09:00:00", note));
+
+        mockMvc.perform(post("/api/pets/" + petId + "/weight-records")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("note"))
+                .andExpect(jsonPath("$.message").value(not(containsStringIgnoringCase("sql"))));
     }
 
     @Test

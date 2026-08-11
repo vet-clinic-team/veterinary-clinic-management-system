@@ -44,4 +44,7 @@ public interface VisitRepository extends JpaRepository<Visit, Long>, JpaSpecific
             VisitStatus status, LocalDateTime windowStart, LocalDateTime windowEnd);
 
     List<Visit> findByCreatedAtGreaterThanEqual(LocalDateTime since);
+
+    List<Visit> findByStatusAndScheduledAtBetweenAndReminderSentAtIsNull(
+            VisitStatus status, LocalDateTime windowStart, LocalDateTime windowEnd);
 }

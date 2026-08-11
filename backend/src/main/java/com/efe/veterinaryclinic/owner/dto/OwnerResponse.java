@@ -12,6 +12,7 @@ public record OwnerResponse(
         String email,
         String address,
         long petCount,
+        boolean archived,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -25,6 +26,7 @@ public record OwnerResponse(
                 owner.getEmail(),
                 owner.getAddress(),
                 petCount,
+                owner.isArchived(),
                 owner.getCreatedAt(),
                 owner.getUpdatedAt()
         );

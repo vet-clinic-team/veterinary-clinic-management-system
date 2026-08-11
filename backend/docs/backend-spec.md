@@ -93,7 +93,9 @@ This document converts the original React frontend learning assignment into a co
 - id, name, specialty, licenseNo, workHours, active, createdAt, updatedAt
 
 **Visit**
-- id, petId, vetId, scheduledAt, status, chiefComplaint, diagnosis, treatmentNotes, followUpDate, createdAt, updatedAt
+- id, petId, vetId, scheduledAt, status, chiefComplaint, diagnosis, treatmentNotes, followUpDate, reminderSentAt, createdAt, updatedAt
+
+> `reminderSentAt` (nullable): stamped by the appointment reminder scheduled job once a reminder email has been sent for this visit (see `docs/business-rules.md` §14). Not client-settable — read-only on `VisitResponse`.
 
 **VisitStatus (enum)**
 - SCHEDULED, CHECKED_IN, IN_EXAM, COMPLETED, CANCELLED
@@ -131,7 +133,7 @@ This document converts the original React frontend learning assignment into a co
 
 - Use ISO-8601 date/time strings on the wire.
 - Use `LocalDate` for date-only fields (e.g. `birthDate`, `followUpDate`, `nextDueDate`).
-- Use `LocalDateTime` for `scheduledAt`, `issuedAt`, `administeredAt`, `createdAt`, `updatedAt`.
+- Use `LocalDateTime` for `scheduledAt`, `issuedAt`, `administeredAt`, `reminderSentAt`, `createdAt`, `updatedAt`.
 
 ## 9. Frontend Pages the Backend Must Support
 
@@ -173,8 +175,8 @@ All major listing endpoints support: search (where relevant), filtering (where r
 - Owner profile data.
 - Owner's pets.
 - Owner-related invoices, either directly or through the pet/visit relationship chain.
-- `petCount` is included on owner list/detail responses so the frontend can disable the delete action or show a confirmation/error message before attempting deletion.
-- Deleting an owner with existing pets is rejected (`409 Conflict`) — pets are never cascade-deleted or auto-archived as a side effect of owner deletion. See `docs/business-rules.md`.
+- `petCount` and `archived` are included on owner list/detail responses so the frontend can enable/disable the archive, activate, and delete actions or show a confirmation/error message before attempting them.
+- An owner can be archived (soft-deleted) once all of its pets are archived (or it has none); hard-deleting an owner requires it to already be archived and to have no pet records at all. Pets are never cascade-deleted or auto-archived as a side effect of owner deletion. See `docs/business-rules.md` Rule 12.
 
 ### 11.3 Visit Detail
 

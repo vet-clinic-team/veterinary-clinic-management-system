@@ -30,16 +30,18 @@ public class Vaccination {
     @JoinColumn(name = "pet_id", nullable = false)
     private Pet pet;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String vaccineType;
 
     @Column(nullable = false)
     private LocalDateTime administeredAt;
 
+    @Column(length = 100)
     private String lotNumber;
 
     private LocalDate nextDueDate;
 
+    @Column(length = 100)
     private String administeredBy;
 
     @Column(nullable = false, updatable = false)

@@ -13,4 +13,8 @@ final class OwnerSpecifications {
                 cb.like(cb.lower(root.get("firstName")), pattern),
                 cb.like(cb.lower(root.get("lastName")), pattern));
     }
+
+    static Specification<Owner> isArchived(boolean archived) {
+        return (root, query, cb) -> cb.equal(root.get("archived"), archived);
+    }
 }

@@ -87,7 +87,7 @@ public class VisitController {
     @PatchMapping("/{id}/medical-notes")
     @Operation(summary = "Update diagnosis/treatment notes", description = "ADMIN, VET. RECEPTIONIST is forbidden from editing medical data. Returns a non-blocking allergy warning if a recorded allergy matches the treatment notes.")
     public ResponseEntity<VisitResponse> updateMedicalNotes(@PathVariable Long id,
-                                                             @RequestBody MedicalNotesUpdateRequest request,
+                                                             @Valid @RequestBody MedicalNotesUpdateRequest request,
                                                              @AuthenticationPrincipal CustomUserDetails principal) {
         return ResponseEntity.ok(visitService.updateMedicalNotes(id, request, principal.getUser().getRole()));
     }

@@ -10,6 +10,8 @@ public interface PetRepository extends JpaRepository<Pet, Long>, JpaSpecificatio
 
     long countByOwnerId(Long ownerId);
 
+    boolean existsByOwnerIdAndArchivedFalse(Long ownerId);
+
     long countByArchivedFalse();
 
     long countByArchivedFalseAndSpeciesIgnoreCase(String species);

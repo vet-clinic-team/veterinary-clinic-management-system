@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Set;
 
 @Service
-public class PetService {
+public class  PetService {
 
     private static final Set<String> SPECIES_WITH_BREED = Set.of("CAT", "DOG");
     private static final int INACTIVE_YEARS_THRESHOLD = 2;
@@ -40,6 +40,7 @@ public class PetService {
     public PetResponse create(PetRequest request) {
         validateSpeciesBreedRule(request.species(), request.speciesNote());
         Owner owner = findOwnerOrThrow(request.ownerId());
+        reactivateOwnerIfArchived(owner);
 
         Pet pet = new Pet(owner, request.name(), request.species(), request.breed(), request.speciesNote(),
                 request.birthDate(), request.sex(), request.weightKg(), request.allergies(), request.chronicConditions());
@@ -80,6 +81,7 @@ public class PetService {
         validateSpeciesBreedRule(request.species(), request.speciesNote());
         Pet pet = findPetOrThrow(id);
         Owner owner = findOwnerOrThrow(request.ownerId());
+        reactivateOwnerIfArchived(owner);
 
         pet.update(owner, request.name(), request.species(), request.breed(), request.speciesNote(),
                 request.birthDate(), request.sex(), request.weightKg(), request.allergies(), request.chronicConditions());
@@ -100,6 +102,7 @@ public class PetService {
         Pet pet = findPetOrThrow(id);
         pet.activate();
         Pet saved = petRepository.save(pet);
+        reactivateOwnerIfArchived(saved.getOwner());
 
         return PetResponse.from(saved, isInactive(saved));
     }
@@ -122,6 +125,13 @@ public class PetService {
                 .orElse(pet.getCreatedAt());
 
         return lastSeenAt.isBefore(LocalDateTime.now().minusYears(INACTIVE_YEARS_THRESHOLD));
+    }
+
+    private void reactivateOwnerIfArchived(Owner owner) {
+        if (owner.isArchived()) {
+            owner.activate();
+            ownerRepository.save(owner);
+        }
     }
 
     private void validateSpeciesBreedRule(String species, String speciesNote) {
