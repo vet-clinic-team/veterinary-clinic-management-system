@@ -279,3 +279,8 @@ Verification commands referenced below:
     - `SupportRequest` entity/enum, ticket CRUD (create/list/detail/status-update), own-ticket scoping for non-admin, admin-only status transitions. Email notification to configured admin recipients on ticket creation (Gmail SMTP via `spring-boot-starter-mail`, best-effort/non-blocking, disabled in tests). See `decisions.md` entries 36-37.
     - Files: `support/*`, `security/SecurityConfig.java`, `pom.xml`, `application.properties` (+ test variants), `docs/backend-spec.md`, `docs/api-contract.md`.
     - Verify: `./mvnw test`.
+
+53. **Appointment reminder emails**
+    - `Visit.reminderSentAt` column; `VisitReminderScheduler` (`@Scheduled(cron = "0 0 9 * * *")`) finds tomorrow's `SCHEDULED` visits without a reminder sent yet and emails the owner via a new `VisitReminderNotifier` (mirrors `SupportRequestNotifier`, reuses existing Gmail SMTP infra), then stamps `reminderSentAt`. Gated by `app.reminders.enabled`, forced `false` in test config. See `decisions.md` entry 43, `docs/business-rules.md` §14.
+    - Files: `visit/*`, `application.properties` (+ test variants), `docs/backend-spec.md`, `docs/api-contract.md`, `docs/business-rules.md`.
+    - Verify: `./mvnw test` (scheduler logic testable by calling the job method directly with a fixed clock, not by waiting for 09:00).

@@ -121,3 +121,14 @@ This document details every backend business rule. Each rule states what must ha
 - `RECEPTIONIST` cannot edit treatment notes (Rule 5) and cannot create/update/delete vaccinations — vaccination write endpoints are `ADMIN`/`VET` only.
 - `RECEPTIONIST` **can** add pet weight records (`POST /api/pets/{id}/weight-records`), since weighing typically happens during check-in.
 - As with Rule 5, these role checks are enforced with Spring Security annotations **and** a service-layer check.
+
+## 14. Appointment Reminder Email Rule
+
+**Rule**: The day before a scheduled appointment, at 09:00, the backend sends the pet's owner a polite reminder email.
+
+- A daily scheduled job runs at 09:00 server time and selects every `Visit` where `status = SCHEDULED`, `scheduledAt` falls on tomorrow's calendar date, and `reminderSentAt` is still `null`.
+- For each matching visit, a best-effort email is sent to `Owner.email` containing the pet's name, the vet's name, and the appointment date/time.
+- After a successful send, `Visit.reminderSentAt` is stamped with the current timestamp, so the same visit is never reminded twice even if the job runs more than once on the same day.
+- If a visit is cancelled before the job runs (`status` moves off `SCHEDULED`), or the owner has no email on file, it is silently skipped — no error, no retry, no block on any other visit or clinic operation.
+- Sending is gated by a config flag (`app.reminders.enabled`) and never fails or delays appointment scheduling itself — a broken/misconfigured mail server must not affect visit creation or any other flow, matching Rule 7's "non-blocking" spirit and the existing support-ticket-notification pattern (see `decisions.md` entry 37).
+- Enforced in the `visit` module (scheduler + notifier), not in a controller.

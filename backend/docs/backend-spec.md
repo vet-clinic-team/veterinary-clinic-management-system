@@ -93,7 +93,9 @@ This document converts the original React frontend learning assignment into a co
 - id, name, specialty, licenseNo, workHours, active, createdAt, updatedAt
 
 **Visit**
-- id, petId, vetId, scheduledAt, status, chiefComplaint, diagnosis, treatmentNotes, followUpDate, createdAt, updatedAt
+- id, petId, vetId, scheduledAt, status, chiefComplaint, diagnosis, treatmentNotes, followUpDate, reminderSentAt, createdAt, updatedAt
+
+> `reminderSentAt` (nullable): stamped by the appointment reminder scheduled job once a reminder email has been sent for this visit (see `docs/business-rules.md` §14). Not client-settable — read-only on `VisitResponse`.
 
 **VisitStatus (enum)**
 - SCHEDULED, CHECKED_IN, IN_EXAM, COMPLETED, CANCELLED
@@ -131,7 +133,7 @@ This document converts the original React frontend learning assignment into a co
 
 - Use ISO-8601 date/time strings on the wire.
 - Use `LocalDate` for date-only fields (e.g. `birthDate`, `followUpDate`, `nextDueDate`).
-- Use `LocalDateTime` for `scheduledAt`, `issuedAt`, `administeredAt`, `createdAt`, `updatedAt`.
+- Use `LocalDateTime` for `scheduledAt`, `issuedAt`, `administeredAt`, `reminderSentAt`, `createdAt`, `updatedAt`.
 
 ## 9. Frontend Pages the Backend Must Support
 

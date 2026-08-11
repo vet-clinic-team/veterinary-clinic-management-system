@@ -47,7 +47,7 @@ class VisitReminderSchedulerTest {
     void schedulerMarksTomorrowsScheduledVisitAsReminded() throws Exception {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "reminder-tomorrow@example.com", "Tarcin");
-        long vetId = createVet(receptionistToken, "VET-LIC-REMINDER-001");
+        long vetId = createVet(receptionistToken, "VET-LIC-REMINDER-001"); // gitleaks:allow
         LocalDateTime scheduledAt = LocalDateTime.now().plusDays(1).withHour(9).withMinute(0).withSecond(0).withNano(0);
         long visitId = createVisit(receptionistToken, petId, vetId, scheduledAt);
 
@@ -62,7 +62,7 @@ class VisitReminderSchedulerTest {
     void schedulerDoesNotMarkVisitScheduledOutsideTomorrowsWindow() throws Exception {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "reminder-nextweek@example.com", "Duman");
-        long vetId = createVet(receptionistToken, "VET-LIC-REMINDER-002");
+        long vetId = createVet(receptionistToken, "VET-LIC-REMINDER-002"); // gitleaks:allow
         LocalDateTime scheduledAt = LocalDateTime.now().plusDays(7).withHour(9).withMinute(0).withSecond(0).withNano(0);
         long visitId = createVisit(receptionistToken, petId, vetId, scheduledAt);
 
@@ -75,7 +75,7 @@ class VisitReminderSchedulerTest {
     void schedulerDoesNotMarkCancelledVisitScheduledTomorrow() throws Exception {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "reminder-cancelled@example.com", "Boncuk");
-        long vetId = createVet(receptionistToken, "VET-LIC-REMINDER-003");
+        long vetId = createVet(receptionistToken, "VET-LIC-REMINDER-003"); // gitleaks:allow
         LocalDateTime scheduledAt = LocalDateTime.now().plusDays(1).withHour(11).withMinute(0).withSecond(0).withNano(0);
         long visitId = createVisit(receptionistToken, petId, vetId, scheduledAt);
 
@@ -94,7 +94,7 @@ class VisitReminderSchedulerTest {
     void runningSchedulerTwiceIsIdempotent() throws Exception {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "reminder-idempotent@example.com", "Zeytin");
-        long vetId = createVet(receptionistToken, "VET-LIC-REMINDER-004");
+        long vetId = createVet(receptionistToken, "VET-LIC-REMINDER-004"); // gitleaks:allow
         LocalDateTime scheduledAt = LocalDateTime.now().plusDays(1).withHour(13).withMinute(0).withSecond(0).withNano(0);
         long visitId = createVisit(receptionistToken, petId, vetId, scheduledAt);
 

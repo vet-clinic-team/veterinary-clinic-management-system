@@ -388,12 +388,15 @@ Note: soft-deletable resources (e.g. `Pet`) have no "real delete" endpoint at al
   "treatmentNotes": "Prescribed Penicillin for 7 days",
   "followUpDate": "2026-07-11",
   "warnings": ["Pet is recorded as allergic to Penicillin"],
+  "reminderSentAt": null,
   "createdAt": "2026-07-04T14:30:00",
   "updatedAt": "2026-07-04T15:10:00"
 }
 ```
 
 > `warnings` is a derived, non-blocking field (see `docs/business-rules.md` §7): the backend does a case-insensitive substring match of each comma/semicolon-separated token in `Pet.allergies` against `treatmentNotes`. It is present on every `VisitResponse` (create/update/get/list/calendar), not only the medical-notes endpoint, and is empty when there is no match or no `allergies`/`treatmentNotes` text to compare. There is no structured `Drug` catalog in this phase — see `decisions.md` for the confirmed assumption.
+
+> `reminderSentAt` (nullable) is present on every `VisitResponse` and is stamped by a daily 09:00 scheduled job the day before `scheduledAt`, once a reminder email has been sent to the owner (see `docs/business-rules.md` §14). It is read-only — not settable via any request body — and there is no dedicated endpoint to trigger it manually; it exists purely so the Visit Detail page can show a "reminder sent" indicator. Gated by `app.reminders.enabled` (disabled in tests), same on/off pattern as `app.support.notifications.enabled`.
 
 **POST /api/visits/{id}/follow-up — request**
 
