@@ -10,14 +10,12 @@ import {
 
 type OwnerFormProps = {
   initialValues?: CreateOwnerRequest;
-  isLoading?: boolean;
   onSubmit: (values: CreateOwnerRequest) => void;
   onCancel?: () => void;
 };
 
 function OwnerForm({
   initialValues,
-  isLoading = false,
   onSubmit,
   onCancel,
 }: OwnerFormProps) {
@@ -38,16 +36,16 @@ function OwnerForm({
   });
 
   useEffect(() => {
-  reset(
-    initialValues ?? {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      address: "",
-    }
-  );
-}, [initialValues, reset]);
+    reset(
+      initialValues ?? {
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        address: "",
+      }
+    );
+  }, [initialValues, reset]);
 
   return (
     <form
@@ -55,7 +53,6 @@ function OwnerForm({
       className="space-y-6"
     >
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-700">
             First Name
@@ -124,7 +121,6 @@ function OwnerForm({
             </p>
           )}
         </div>
-
       </div>
 
       <div>
@@ -146,7 +142,6 @@ function OwnerForm({
       </div>
 
       <div className="flex justify-end gap-3">
-
         <button
           type="button"
           onClick={onCancel}
@@ -157,12 +152,10 @@ function OwnerForm({
 
         <button
           type="submit"
-          disabled={isLoading}
-          className="rounded-xl bg-blue-600 px-5 py-2.5 font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-xl bg-blue-600 px-5 py-2.5 font-medium text-white transition hover:bg-blue-700"
         >
-          {isLoading ? "Saving..." : "Save Owner"}
+          Save Owner
         </button>
-
       </div>
     </form>
   );

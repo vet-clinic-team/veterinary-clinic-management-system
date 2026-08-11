@@ -10,6 +10,7 @@ import VaccinationToolbar from "../../components/vaccinations/VaccinationToolbar
 import VaccinationTable from "../../components/vaccinations/VaccinationTable";
 import VaccinationForm from "../../components/vaccinations/VaccinationForm";
 import DeleteVaccinationDialog from "../../components/vaccinations/DeleteVaccinationDialog";
+import toast from "react-hot-toast";
 
 import {
   getVaccinations,
@@ -178,24 +179,37 @@ const handleSubmitVaccination = async (
   values: CreateVaccinationRequest
 ) => {
   try {
-    if (selectedVaccination) {
-      await updateVaccination(
-        selectedVaccination.id,
-        values
-      );
-    } else {
-      await createVaccination(values);
-    }
+  if (selectedVaccination) {
+    await updateVaccination(
+      selectedVaccination.id,
+      values
+    );
 
-    await fetchVaccinations();
+    toast.success(
+      "Vaccination updated successfully."
+    );
+  } else {
+    await createVaccination(values);
 
-    handleCloseModal();
-  } catch (error) {
-    console.error(
-      "Save vaccination error:",
-      error
+    toast.success(
+      "Vaccination created successfully."
     );
   }
+
+  await fetchVaccinations();
+  await fetchStats();
+
+  handleCloseModal();
+
+} catch (error: any) {
+  console.error(error);
+
+  const message =
+    error?.response?.data?.message ??
+    "Failed to save vaccination.";
+
+  toast.error(message);
+}
 };
 const handleDeleteVaccination = async () => {
   if (!vaccinationToDelete) {
@@ -203,19 +217,28 @@ const handleDeleteVaccination = async () => {
   }
 
   try {
-    await deleteVaccination(
-      vaccinationToDelete.id
-    );
+  await deleteVaccination(
+    vaccinationToDelete.id
+  );
 
-    await fetchVaccinations();
+  toast.success(
+    "Vaccination deleted successfully."
+  );
 
-    setVaccinationToDelete(null);
-  } catch (error) {
-    console.error(
-      "Delete vaccination error:",
-      error
-    );
-  }
+  await fetchVaccinations();
+  await fetchStats();
+
+  setVaccinationToDelete(null);
+
+} catch (error: any) {
+  console.error(error);
+
+  const message =
+    error?.response?.data?.message ??
+    "Failed to delete vaccination.";
+
+  toast.error(message);
+}
 };
 const handleExportVaccinations = () => {
   const headers = [
@@ -270,48 +293,90 @@ const handleExportVaccinations = () => {
 return (
   <DashboardLayout>
     <PageContainer>
-  <div className="mb-8">
-    <h1 className="text-3xl font-bold text-slate-900">
-      Vaccinations
-    </h1>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-900">
+          Vaccinations
+        </h1>
 
-    <p className="mt-2 text-slate-500">
-      Manage vaccination records for your patients.
-    </p>
-  </div>
-      {stats && (
-  <VaccinationStats
-    stats={stats}
-  />
-)}
-
-      <div className="mt-8">
-        <VaccinationToolbar
-          onSearch={setSearch}
-          onSort={setSort}
-          onAdd={handleAddVaccination}
-          onExport={handleExportVaccinations}
-        />
+        <p className="mt-2 text-slate-500">
+          Manage vaccination records for your patients.
+        </p>
       </div>
 
       {loading ? (
-        <div className="py-16 text-center text-slate-500">
+        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
           Loading vaccinations...
         </div>
       ) : error ? (
-        <div className="py-16 text-center text-red-500">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
           {error}
         </div>
       ) : (
-        <VaccinationTable
-          vaccinations={filteredVaccinations}
-          pets={pets}
-          onEdit={handleEditVaccination}
-          onDelete={setVaccinationToDelete}
-        />
+        <>
+         {stats !== null && (
+  <VaccinationStats stats={stats} />
+)}
+
+          <div className="mt-8">
+            <VaccinationToolbar
+              onSearch={setSearch}
+              onSort={setSort}
+              onAdd={handleAddVaccination}
+              onExport={handleExportVaccinations}
+            />
+          </div>
+
+          {filteredVaccinations.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
+              <h3 className="text-lg font-semibold text-slate-700">
+                No vaccinations found
+              </h3>
+
+              <p className="mt-2 text-slate-500">
+                There are no vaccinations matching your search.
+              </p>
+            </div>
+          ) : (
+            <>
+              <VaccinationTable
+                vaccinations={filteredVaccinations}
+                pets={pets}
+                onEdit={handleEditVaccination}
+                onDelete={setVaccinationToDelete}
+              />
+
+              {totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-between">
+                  <button
+                    type="button"
+                    disabled={page === 0}
+                    onClick={() => setPage((prev) => prev - 1)}
+                    className="rounded-lg border border-slate-300 px-4 py-2 disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+
+                  <span className="text-sm text-slate-600">
+                    Page {page + 1} of {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    disabled={page + 1 >= totalPages}
+                    onClick={() => setPage((prev) => prev + 1)}
+                    className="rounded-lg border border-slate-300 px-4 py-2 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </>
       )}
-            <Modal
-        open={isModalOpen}
+
+      <Modal
+  open={isModalOpen}
         onClose={handleCloseModal}
         title={
           selectedVaccination
@@ -319,31 +384,7 @@ return (
             : "Add Vaccination"
         }
       >
-        {totalPages > 1 && (
-  <div className="mt-6 flex items-center justify-between">
-    <button
-      type="button"
-      disabled={page === 0}
-      onClick={() => setPage((prev) => prev - 1)}
-      className="rounded-lg border border-slate-300 px-4 py-2 disabled:opacity-50"
-    >
-      Previous
-    </button>
-
-    <span className="text-sm text-slate-600">
-      Page {page + 1} of {totalPages}
-    </span>
-
-    <button
-      type="button"
-      disabled={page + 1 >= totalPages}
-      onClick={() => setPage((prev) => prev + 1)}
-      className="rounded-lg border border-slate-300 px-4 py-2 disabled:opacity-50"
-    >
-      Next
-    </button>
-  </div>
-)}
+        
         <VaccinationForm
   initialValues={
     selectedVaccination

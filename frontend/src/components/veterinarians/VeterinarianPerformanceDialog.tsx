@@ -114,79 +114,77 @@ function VeterinarianPerformanceDialog({
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-5">
-            <Card title="Total Visits">
-              <p className="text-3xl font-bold text-slate-900">
-                {performance.totalVisitsYtd}
-              </p>
+<div className="grid grid-cols-2 gap-5">
+  <Card title="Total Visits">
+    <p className="text-3xl font-bold text-slate-900">
+      {performance.totalVisitsYtd}
+    </p>
 
-              <p className="mt-2 text-sm text-slate-500">
-                Year-to-date visits
-              </p>
-            </Card>
+    <p className="mt-2 text-sm text-slate-500">
+      Year-to-date visits
+    </p>
+  </Card>
 
-            <Card title="Completed Visits">
-              <p className="text-3xl font-bold text-green-600">
-                performance.revenueGeneratedYtd ?? 0
-              </p>
+  <Card title="Completed Visits">
+    <p className="text-3xl font-bold text-green-600">
+      {performance.completedVisitsYtd ?? 0}
+    </p>
 
-              <p className="mt-2 text-sm text-slate-500">
-                Successfully completed
-              </p>
-            </Card>
+    <p className="mt-2 text-sm text-slate-500">
+      Successfully completed
+    </p>
+  </Card>
 
-            <Card title="Cancelled Visits">
-              <p className="text-3xl font-bold text-red-600">
-                {performance.cancelledVisitsYtd}
-              </p>
+  <Card title="Cancelled Visits">
+    <p className="text-3xl font-bold text-red-600">
+      {performance.cancelledVisitsYtd}
+    </p>
 
-              <p className="mt-2 text-sm text-slate-500">
-                Cancelled appointments
-              </p>
-            </Card>
+    <p className="mt-2 text-sm text-slate-500">
+      Cancelled appointments
+    </p>
+  </Card>
 
-            <Card title="Upcoming Visits">
-              <p className="text-3xl font-bold text-blue-600">
-                {performance.upcomingVisits}
-              </p>
+  <Card title="Upcoming Visits">
+    <p className="text-3xl font-bold text-blue-600">
+      {performance.upcomingVisits}
+    </p>
 
-              <p className="mt-2 text-sm text-slate-500">
-                Scheduled appointments
-              </p>
-            </Card>
+    <p className="mt-2 text-sm text-slate-500">
+      Scheduled appointments
+    </p>
+  </Card>
 
-            <Card title="Revenue (YTD)">
-              <p className="text-3xl font-bold text-emerald-600">
-                {new Intl.NumberFormat("en-US", {
-                  style: "currency",
-                  currency: "EUR",
-                }).format(
-                  performance.revenueGeneratedYtd
-                )}
-              </p>
+  <Card title="Revenue (YTD)">
+    <p className="text-3xl font-bold text-emerald-600">
+      {new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "EUR",
+      }).format(performance.revenueGeneratedYtd)}
+    </p>
 
-              <p className="mt-2 text-sm text-slate-500">
-                Generated this year
-              </p>
-            </Card>
+    <p className="mt-2 text-sm text-slate-500">
+      Generated this year
+    </p>
+  </Card>
 
-            <Card title="Completion Rate">
-              <p className="text-3xl font-bold text-indigo-600">
-                {performance.totalVisitsYtd === 0
-                  ? 0
-                  : Math.round(
-                      (performance.completedVisitsYtd /
-                        performance.totalVisitsYtd) *
-                        100
-                    )}
-                %
-              </p>
+  <Card title="Completion Rate">
+    <p className="text-3xl font-bold text-indigo-600">
+      {performance.totalVisitsYtd === 0
+        ? 0
+        : Math.round(
+            (performance.completedVisitsYtd /
+              performance.totalVisitsYtd) *
+              100
+          )}
+      %
+    </p>
 
-              <p className="mt-2 text-sm text-slate-500">
-                Completed appointments ratio
-              </p>
-            </Card>
-          </div>
+    <p className="mt-2 text-sm text-slate-500">
+      Completed appointments ratio
+    </p>
+  </Card>
+</div>
         </>
       ) : (
         <div className="py-16 text-center text-slate-500">

@@ -9,6 +9,7 @@ import InvoiceToolbar from "../../components/invoices/InvoiceToolbar";
 import InvoiceTable from "../../components/invoices/InvoiceTable";
 import InvoiceForm from "../../components/invoices/InvoiceForm";
 import InvoiceDetailsDialog from "../../components/invoices/InvoiceDetailsDialog";
+import toast from "react-hot-toast";
 
 import {
   getInvoices,
@@ -159,39 +160,63 @@ function InvoicesPage() {
   const handleSubmitInvoice = async (
     values: CreateInvoiceRequest
   ) => {
-    try {
-      await createInvoice(values);
+   try {
+  await createInvoice(values);
 
-      setIsFormOpen(false);
+  toast.success("Invoice created successfully.");
 
-      await fetchInvoices();
-    } catch (error) {
-      console.error("Failed to create invoice:", error);
-    }
+  setIsFormOpen(false);
+
+  await fetchInvoices();
+} catch (error: any) {
+  console.error(error);
+
+  const message =
+    error?.response?.data?.message ??
+    "Failed to create invoice.";
+
+  toast.error(message);
+}
   };
 
   const handleSendInvoice = async (
     invoice: Invoice
   ) => {
     try {
-      await sendInvoice(invoice.id);
+  await sendInvoice(invoice.id);
 
-      await fetchInvoices();
-    } catch (error) {
-      console.error("Failed to send invoice:", error);
-    }
+  toast.success("Invoice sent successfully.");
+
+  await fetchInvoices();
+} catch (error: any) {
+  console.error(error);
+
+  const message =
+    error?.response?.data?.message ??
+    "Failed to send invoice.";
+
+  toast.error(message);
+}
   };
 
   const handleMarkPaid = async (
     invoice: Invoice
   ) => {
-    try {
-      await markInvoicePaid(invoice.id);
+   try {
+  await markInvoicePaid(invoice.id);
 
-      await fetchInvoices();
-    } catch (error) {
-      console.error("Failed to mark invoice as paid:", error);
-    }
+  toast.success("Invoice marked as paid.");
+
+  await fetchInvoices();
+} catch (error: any) {
+  console.error(error);
+
+  const message =
+    error?.response?.data?.message ??
+    "Failed to mark invoice as paid.";
+
+  toast.error(message);
+}
   };
   const handleSelectInvoice = (
   invoiceId: number,
@@ -288,110 +313,126 @@ const handleBulkMarkPaid = async () => {
     URL.revokeObjectURL(url);
   };
     return (
-    <DashboardLayout>
-      <PageContainer>
-  <div className="mb-8">
-    <h1 className="text-3xl font-bold text-slate-900">
-      Invoices
-    </h1>
+  <DashboardLayout>
+    <PageContainer>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-900">
+          Invoices
+        </h1>
 
-    <p className="mt-2 text-slate-500">
-      Manage clinic invoices and billing.
-    </p>
-  </div>
-        {stats && (
-  <InvoiceStats
-    stats={stats}
-  />
-)}
+        <p className="mt-2 text-slate-500">
+          Manage clinic invoices and billing.
+        </p>
+      </div>
 
-        <div className="mt-8">
-          <InvoiceToolbar
-  search={search}
-  status={status}
-  from={from}
-  to={to}
-  sort={sort}
-  selectedCount={selectedInvoices.length}
-  onSearchChange={setSearch}
-  onStatusChange={setStatus}
-  onFromChange={setFrom}
-  onToChange={setTo}
-  onSortChange={setSort}
-  onExport={handleExportInvoices}
-  onCreate={handleCreateInvoice}
-  onBulkMarkPaid={handleBulkMarkPaid}
-/>
+      {loading ? (
+        <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
+          Loading invoices...
         </div>
+      ) : error ? (
+        <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
+          {error}
+        </div>
+      ) : (
+        <>
+          <InvoiceStats stats={stats!} />
 
-        {loading ? (
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
-            Loading invoices...
+          <div className="mt-8">
+            <InvoiceToolbar
+              search={search}
+              status={status}
+              from={from}
+              to={to}
+              sort={sort}
+              selectedCount={selectedInvoices.length}
+              onSearchChange={setSearch}
+              onStatusChange={setStatus}
+              onFromChange={setFrom}
+              onToChange={setTo}
+              onSortChange={setSort}
+              onExport={handleExportInvoices}
+              onCreate={handleCreateInvoice}
+              onBulkMarkPaid={handleBulkMarkPaid}
+            />
           </div>
-        ) : error ? (
-          <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
-            {error}
-          </div>
-        ) : (
-          <>
-            <InvoiceTable
-  invoices={filteredInvoices}
-  selectedInvoices={selectedInvoices}
-  onSelect={handleSelectInvoice}
-  onSelectAll={handleSelectAll}
-  onView={handleViewInvoice}
-  onSend={handleSendInvoice}
-  onMarkPaid={handleMarkPaid}
-/>
 
-            {totalPages > 1 && (
-              <div className="mt-6 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  disabled={page === 0}
-                  onClick={() => setPage((previous) => previous - 1)}
-                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Previous
-                </button>
+          {filteredInvoices.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
+              <h3 className="text-lg font-semibold text-slate-700">
+                No invoices found
+              </h3>
 
-                <span className="text-sm text-slate-600">
-                  Page {page + 1} of {totalPages}
-                </span>
+              <p className="mt-2 text-slate-500">
+                There are no invoices matching your search.
+              </p>
+            </div>
+          ) : (
+            <>
+              <InvoiceTable
+                invoices={filteredInvoices}
+                selectedInvoices={selectedInvoices}
+                onSelect={handleSelectInvoice}
+                onSelectAll={handleSelectAll}
+                onView={handleViewInvoice}
+                onSend={handleSendInvoice}
+                onMarkPaid={handleMarkPaid}
+              />
 
-                <button
-                  type="button"
-                  disabled={page + 1 >= totalPages}
-                  onClick={() => setPage((previous) => previous + 1)}
-                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
-            )}
-          </>
-        )}
-                <Modal
-  open={isFormOpen}
-  title="Create Invoice"
-  onClose={handleCloseForm}
-  maxWidth="2xl"
->
-          <InvoiceForm
-            mode="create"
-            onSubmit={handleSubmitInvoice}
-            onCancel={handleCloseForm}
-          />
-        </Modal>
+              {totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    disabled={page === 0}
+                    onClick={() =>
+                      setPage((previous) => previous - 1)
+                    }
+                    className="rounded-xl border border-slate-300 px-4 py-2 text-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
 
-        <InvoiceDetailsDialog
-          open={isDetailsOpen}
-          invoice={selectedInvoice}
-          onClose={handleCloseDetails}
+                  <span className="text-sm text-slate-600">
+                    Page {page + 1} of {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    disabled={page + 1 >= totalPages}
+                    onClick={() =>
+                      setPage((previous) => previous + 1)
+                    }
+                    className="rounded-xl border border-slate-300 px-4 py-2 text-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      <Modal
+        open={isFormOpen}
+        title="Create Invoice"
+        onClose={handleCloseForm}
+        maxWidth="2xl"
+      >
+        <InvoiceForm
+          mode="create"
+          onSubmit={handleSubmitInvoice}
+          onCancel={handleCloseForm}
         />
-      </PageContainer>
-    </DashboardLayout>
-  );
+      </Modal>
+
+      <InvoiceDetailsDialog
+        open={isDetailsOpen}
+        invoice={selectedInvoice}
+        onClose={handleCloseDetails}
+      />
+    </PageContainer>
+  </DashboardLayout>
+);
 }
 
 export default InvoicesPage;

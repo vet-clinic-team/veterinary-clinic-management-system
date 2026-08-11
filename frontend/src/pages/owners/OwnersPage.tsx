@@ -8,6 +8,7 @@ import OwnerTable from "../../components/owners/OwnerTable";
 import OwnerForm from "../../components/owners/OwnerForm";
 import DeleteOwnerDialog from "../../components/owners/DeleteOwnerDialog";
 
+
 import Modal from "../../components/ui/Modal";
 
 import {
@@ -23,10 +24,12 @@ import type {
   CreateOwnerRequest,
   OwnerStatsResponse,
 } from "../../types/owner";
+import toast from "react-hot-toast";
 
 
 
 function OwnersPage() {
+
 
 
   const [owners, setOwners] =
@@ -42,6 +45,8 @@ function OwnersPage() {
 
   const [loading, setLoading] =
     useState(true);
+    
+   
 
 
 
@@ -85,7 +90,9 @@ function OwnersPage() {
   const [totalPages, setTotalPages] = useState(0);
   const fetchOwners = async () => {
   try {
-    setLoading(true);
+    if (owners.length === 0) {
+  setLoading(true);
+}
     setError("");
 
     let sort: string | undefined;
@@ -145,16 +152,13 @@ const fetchOwnerStats = async () => {
     );
   }
 };
-
 useEffect(() => {
   fetchOwners();
+}, [page, size, searchTerm, sortOption]);
+
+useEffect(() => {
   fetchOwnerStats();
-}, [
-  page,
-  size,
-  searchTerm,
-  sortOption,
-]);
+}, []);
 
   const handleExportOwners = () => {
     
@@ -289,29 +293,25 @@ useEffect(() => {
 
 
     try {
+      
 
 
-      if(selectedOwner) {
+      if (selectedOwner) {
 
+  await updateOwner(
+    selectedOwner.id,
+    values
+  );
 
-        await updateOwner(
+  toast.success("Owner updated successfully.");
 
-          selectedOwner.id,
+} else {
 
-          values
+  await createOwner(values);
 
-        );
+  toast.success("Owner created successfully.");
 
-
-      } else {
-
-
-        await createOwner(
-          values
-        );
-
-
-      }
+}
 
 
 
@@ -322,19 +322,28 @@ useEffect(() => {
       setIsModalOpen(false);
 
       setSelectedOwner(null);
+      } catch (error: any) {
+
+  console.error(
+    "Save owner error:",
+    error
+  );
+
+  const message =
+    error?.response?.data?.message ??
+    "Failed to save owner.";
+
+  toast.error(message);
 
 
 
-    } catch(error) {
+  
+
+}
 
 
-      console.error(
-        "Save owner error:",
-        error
-      );
 
-
-    }
+    
 
   };
 
@@ -361,6 +370,7 @@ useEffect(() => {
         deleteOwner.id
 
       );
+      toast.success("Owner deleted successfully.");
 
 
 
@@ -372,22 +382,22 @@ useEffect(() => {
 
 
 
-    } catch(error) {
+   } catch (error: any) {
 
+  console.error(
+    "Delete owner error:",
+    error
+  );
 
-      console.error(
-        "Delete owner error:",
-        error
-      );
+  const message =
+    error?.response?.data?.message ??
+    "This owner cannot be deleted because they have registered pets.";
 
+  setDeleteError(message);
 
+  toast.error(message);
 
-      setDeleteError(
-        "This owner cannot be deleted because they have registered pets."
-      );
-
-
-    }
+}
 
   };
 
@@ -433,101 +443,60 @@ useEffect(() => {
 
 
         </div>
-
-
-
-
-
-        <OwnerStats stats={stats} />
-
-
-
-
-
-        {loading && (
-
-          <div className="text-slate-500">
-
-            Loading owners...
-
-          </div>
-
-        )}
-
-
-
-
-
-
-        {error && (
-
-          <div className="text-red-500">
-
-            {error}
-
-          </div>
-
-        )}
-
-
-
-
-
-
-       <OwnerToolbar
-  onAdd={handleAdd}
-  onSearch={(value) => {
-    setSearchTerm(value);
-    setPage(0);
-  }}
-  onSort={(value) => {
-    setSortOption(value);
-    setPage(0);
-  }}
-  onExport={handleExportOwners}
-/>
-
-
-
-
-
-
-        {!loading && !error && (
+        
+  
+    {loading ? (
+  <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
+    Loading owners...
+  </div>
+) : error ? (
+  <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
+    {error}
+  </div>
+) : (
   <>
-    <OwnerTable
-  owners={owners}
-  onEdit={handleEdit}
-  onDelete={handleDelete}
-/>
+    <OwnerStats stats={stats} />
 
-    {totalPages > 1 && (
-      <div className="mt-6 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => setPage((prev) => prev - 1)}
-          disabled={page === 0}
-          className="rounded-lg border px-4 py-2 disabled:opacity-50"
-        >
-          Previous
-        </button>
+    <OwnerToolbar
+      onAdd={handleAdd}
+      onSearch={(value) => {
+        setSearchTerm(value);
+        setPage(0);
+      }}
+      onSort={(value) => {
+        setSortOption(value);
+        setPage(0);
+      }}
+      onExport={handleExportOwners}
+    />
 
-        <span className="text-sm text-slate-600">
-          Page {page + 1} of {totalPages}
-        </span>
+    {owners.length === 0 ? (
+      <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
+        <h3 className="text-lg font-semibold text-slate-700">
+          No owners found
+        </h3>
 
-        <button
-          type="button"
-          onClick={() => setPage((prev) => prev + 1)}
-          disabled={page + 1 >= totalPages}
-          className="rounded-lg border px-4 py-2 disabled:opacity-50"
-        >
-          Next
-        </button>
+        <p className="mt-2 text-slate-500">
+          There are no owners matching your search.
+        </p>
       </div>
+    ) : (
+      <>
+        <OwnerTable
+          owners={owners}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+
+        {totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between">
+            ...
+          </div>
+        )}
+      </>
     )}
   </>
 )}
-
 
 
 
@@ -585,6 +554,7 @@ useEffect(() => {
               : undefined
 
             }
+            
 
 
 

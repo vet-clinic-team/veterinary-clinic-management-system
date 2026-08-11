@@ -10,6 +10,8 @@ import PetToolbar from "../../components/pets/PetToolbar";
 import PetTable from "../../components/pets/PetTable";
 import PetForm from "../../components/pets/PetForm";
 import DeletePetDialog from "../../components/pets/DeletePetDialog";
+import toast from "react-hot-toast";
+
 
 import {
   getPets,
@@ -62,12 +64,16 @@ const [totalPages, setTotalPages] = useState(0);
 
 
   const [error, setError] =
-    useState("");
-
+  useState("");
+  
 
 
   const [search, setSearch] =
     useState("");
+    const [debouncedSearch, setDebouncedSearch] =
+  
+    useState("");
+
 
 
 
@@ -113,7 +119,9 @@ const [totalPages, setTotalPages] = useState(0);
     try {
 
 
-      setLoading(true);
+      if (pets.length === 0) {
+  setLoading(true);
+}
 
       setError("");
 
@@ -143,7 +151,7 @@ switch (sort) {
 const data = await getPets({
   page,
   size,
-  search: search || undefined,
+  search: debouncedSearch || undefined,
   species: species || undefined,
   ownerId: owner ? Number(owner) : undefined,
   active: !showArchived,
@@ -191,22 +199,16 @@ setTotalPages(data.totalPages);
   }
 };
   const fetchOwners = async () => {
-
   try {
+    const data = await getOwners();
 
-    const data =
-      await getOwners();
+    
 
-
-    setOwners(
-      data.content ?? []
-    );
-
-
-  } catch {
-  setOwners([]);
-}
-
+    setOwners(data.content ?? []);
+  } catch (error) {
+    console.error(error);
+    setOwners([]);
+  }
 };
 
 
@@ -214,16 +216,25 @@ setTotalPages(data.totalPages);
 
   useEffect(() => {
   fetchPets();
-  fetchPetStats();
 }, [
   page,
   size,
-  search,
+  debouncedSearch,
   species,
   owner,
   sort,
   showArchived,
 ]);
+useEffect(() => {
+  fetchPetStats();
+}, []);
+useEffect(() => {
+  const timer = setTimeout(() => {
+    setDebouncedSearch(search.trim());
+  }, 400);
+
+  return () => clearTimeout(timer);
+}, [search]);
 
 useEffect(() => {
   fetchOwners();
@@ -376,25 +387,15 @@ useEffect(() => {
     try {
 
 
-      if(selectedPet) {
+      if (selectedPet) {
+  await updatePet(selectedPet.id, values);
 
+  toast.success("Pet updated successfully.");
+} else {
+  await createPet(values);
 
-        await updatePet(
-          selectedPet.id,
-          values
-        );
-
-
-      } else {
-
-
-       
-
-
-        await createPet(values);
-
-
-      }
+  toast.success("Pet created successfully.");
+}
 
 
 
@@ -406,7 +407,15 @@ useEffect(() => {
 
 
 
-    } catch {}
+    } catch (error: any) {
+  console.error(error);
+
+  const message =
+    error?.response?.data?.message ??
+    "Failed to save pet.";
+
+  toast.error(message);
+}
 
 
   };
@@ -422,48 +431,34 @@ const handleArchivePet = (
 
   };
    const handleConfirmArchive = async () => {
+  if (!petToArchive) return;
 
+  try {
+    if (showArchived) {
+      await activatePet(petToArchive.id);
 
-    if(!petToArchive) return;
+      toast.success("Pet restored successfully.");
+    } else {
+      await archivePet(petToArchive.id);
 
+      toast.success("Pet archived successfully.");
+    }
 
+    await fetchPets();
 
-    try {
+    setPetToArchive(null);
 
+  } catch (error: any) {
+    console.error(error);
 
-      if(showArchived) {
+    const message =
+      error?.response?.data?.message ??
+      "Operation failed.";
 
-
-        await activatePet(
-          petToArchive.id
-        );
-
-
-      } else {
-
-
-        await archivePet(
-          petToArchive.id
-        );
-
-
-      }
-
-
-
-      await fetchPets();
-
-
-
-      setPetToArchive(null);
-
-
-
-    } catch {}
-
-
-  };
-    return (
+    toast.error(message);
+  }
+};
+return (
 
     <DashboardLayout>
 
@@ -509,206 +504,150 @@ const handleArchivePet = (
 
 
         <div className="space-y-8">
-
-
-          <PetStats stats={stats} />
-
-
-
-
-          {loading && (
-
-            <div className="text-slate-500">
-
-              Loading pets...
-
-            </div>
-
-          )}
-
-
-
-
-
-          {error && (
-
-            <div className="text-red-500">
-
-              {error}
-
-            </div>
-
-          )}
-
-
-
-
-
-
-
-          {/* Active / Archived Tabs */}
-
-<div
-  className="
-    flex
-    w-fit
-    rounded-xl
-    border
-    border-slate-200
-    bg-white
-    p-1
-    shadow-sm
-    mb-2
-  "
->
-
-  <button
-  type="button"
-  onClick={() => {
-    setShowArchived(false);
-    setPage(0);
-  }}
-    className={`
-      rounded-xl
-      px-6
-      py-2.5
-      text-sm
-      font-semibold
-      transition
-      ${
-        !showArchived
-          ? "bg-blue-600 text-white shadow-sm"
-          : "text-slate-600 hover:bg-slate-100"
-      }
-    `}
-  >
-    Active Pets
-  </button>
-
-
-
- <button
-  type="button"
-  onClick={() => {
-    setShowArchived(true);
-    setPage(0);
-  }}
-    className={`
-      rounded-xl
-      px-6
-      py-2.5
-      text-sm
-      font-semibold
-      transition
-      ${
-        showArchived
-          ? "bg-blue-600 text-white shadow-sm"
-          : "text-slate-600 hover:bg-slate-100"
-      }
-    `}
-  >
-    Archived Pets
-  </button>
-
-
-</div>
-
-
-
-
-
-
-
-
-
-          <PetToolbar
-  search={search}
-  species={species}
-  owner={owner}
-  sort={sort}
-  owners={owners}
-  onSearchChange={(value) => {
-    setSearch(value);
-    setPage(0);
-  }}
-  onSpeciesChange={(value) => {
-    setSpecies(value);
-    setPage(0);
-  }}
-  onOwnerChange={(value) => {
-    setOwner(value);
-    setPage(0);
-  }}
-  onSortChange={(value) => {
-    setSort(value);
-    setPage(0);
-  }}
-  onAddPet={handleAddPet}
-  onExport={handleExportPets}
-/>
-
-
-
-
-
-
-
-
-
-
-
-          {!loading && !error && (
+          {loading ? (
+  <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
+    Loading pets...
+  </div>
+) : error ? (
+  <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
+    {error}
+  </div>
+) : (
   <>
-    <PetTable
-      pets={pets}
+    <PetStats stats={stats} />
+
+    <div
+      className="
+        flex
+        w-fit
+        rounded-xl
+        border
+        border-slate-200
+        bg-white
+        p-1
+        shadow-sm
+        mb-2
+      "
+    >
+      <button
+        type="button"
+        onClick={() => {
+          setShowArchived(false);
+          setPage(0);
+        }}
+        className={`
+          rounded-xl
+          px-6
+          py-2.5
+          text-sm
+          font-semibold
+          transition
+          ${
+            !showArchived
+              ? "bg-blue-600 text-white shadow-sm"
+              : "text-slate-600 hover:bg-slate-100"
+          }
+        `}
+      >
+        Active Pets
+      </button>
+
+      <button
+        type="button"
+        onClick={() => {
+          setShowArchived(true);
+          setPage(0);
+        }}
+        className={`
+          rounded-xl
+          px-6
+          py-2.5
+          text-sm
+          font-semibold
+          transition
+          ${
+            showArchived
+              ? "bg-blue-600 text-white shadow-sm"
+              : "text-slate-600 hover:bg-slate-100"
+          }
+        `}
+      >
+        Archived Pets
+      </button>
+    </div>
+
+    <PetToolbar
+      search={search}
+      species={species}
+      owner={owner}
+      sort={sort}
       owners={owners}
-      onEdit={handleEditPet}
-      onDelete={handleArchivePet}
+      onSearchChange={(value) => {
+        setSearch(value);
+        setPage(0);
+      }}
+      onSpeciesChange={(value) => {
+        setSpecies(value);
+        setPage(0);
+      }}
+      onOwnerChange={(value) => {
+        setOwner(value);
+        setPage(0);
+      }}
+      onSortChange={(value) => {
+        setSort(value);
+        setPage(0);
+      }}
+      onAddPet={handleAddPet}
+      onExport={handleExportPets}
     />
 
-    {totalPages > 1 && (
-      <div className="mt-6 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => setPage((prev) => prev - 1)}
-          disabled={page === 0}
-          className="rounded-lg border px-4 py-2 disabled:opacity-50"
-        >
-          Previous
-        </button>
-
-        <span className="text-sm text-slate-600">
-          Page {page + 1} of {totalPages}
-        </span>
-
-        <button
-          type="button"
-          onClick={() => setPage((prev) => prev + 1)}
-          disabled={page + 1 >= totalPages}
-          className="rounded-lg border px-4 py-2 disabled:opacity-50"
-        >
-          Next
-        </button>
+    {pets.length === 0 ? (
+      <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center text-slate-500">
+        No pets found.
       </div>
+    ) : (
+      <>
+        <PetTable
+          pets={pets}
+          owners={owners}
+          onEdit={handleEditPet}
+          onDelete={handleArchivePet}
+        />
+
+        {totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setPage((prev) => prev - 1)}
+              disabled={page === 0}
+              className="rounded-lg border px-4 py-2 disabled:opacity-50"
+            >
+              Previous
+            </button>
+
+            <span className="text-sm text-slate-600">
+              Page {page + 1} of {totalPages}
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setPage((prev) => prev + 1)}
+              disabled={page + 1 >= totalPages}
+              className="rounded-lg border px-4 py-2 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </>
     )}
   </>
 )}
 
+</div>
 
-
-
-
-        </div>
-
-
-
-
-
-
-
-
-
-        <Modal
+<Modal
 
 
           open={isModalOpen}
@@ -854,14 +793,8 @@ const handleArchivePet = (
 
 
       </PageContainer>
-
-
     </DashboardLayout>
-
   );
-
 }
-
-
 
 export default PetsPage;

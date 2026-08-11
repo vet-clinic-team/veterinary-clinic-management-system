@@ -4,6 +4,10 @@ import NotificationDropdown from "../notifications/NotificationDropdown";
 import { getNotifications } from "../../services/notificationService";
 
 import type { NotificationResponse } from "../../types/notification";
+import { LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../../store/authStore";
+import toast from "react-hot-toast";
 
 import {
   Bell,
@@ -59,6 +63,18 @@ const notificationRef =
     month: "long",
     year: "numeric",
   });
+  const navigate = useNavigate();
+  
+
+const user = useAuthStore((state) => state.user);
+
+const logout = useAuthStore((state) => state.logout);
+
+const [isUserMenuOpen, setIsUserMenuOpen] =
+  useState(false);
+
+const userMenuRef =
+  useRef<HTMLDivElement>(null);
   useEffect(() => {
   const fetchSearchResults = async () => {
     if (debouncedQuery.length < 3) {
@@ -110,6 +126,7 @@ useEffect(() => {
     );
   };
 }, []);
+
 useEffect(() => {
   const handleEscape = (event: KeyboardEvent) => {
     if (event.key === "Escape") {
@@ -130,6 +147,7 @@ useEffect(() => {
   };
 }, []);
 
+
   useEffect(() => {
   const timer = setTimeout(() => {
     setDebouncedQuery(query.trim());
@@ -144,6 +162,28 @@ useEffect(() => {
       !notificationRef.current.contains(event.target as Node)
     ) {
       setIsNotificationOpen(false);
+    }
+  };
+
+  document.addEventListener(
+    "mousedown",
+    handleClickOutside
+  );
+
+  return () => {
+    document.removeEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+  };
+}, []);
+useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    if (
+      userMenuRef.current &&
+      !userMenuRef.current.contains(event.target as Node)
+    ) {
+      setIsUserMenuOpen(false);
     }
   };
 
@@ -176,12 +216,23 @@ const handleNotificationClick = async () => {
 
   setIsNotificationOpen((prev) => !prev);
 };
+
+const handleLogout = () => {
+  logout();
+
+  toast.success("Logged out successfully.");
+
+  navigate("/login", {
+    replace: true,
+  });
+};
+
 const notificationCount =
   (notifications?.upcomingAppointments.length ?? 0) +
   (notifications?.vaccinationsDueToday.length ?? 0) +
   (notifications?.newRecords.length ?? 0);
 
-  return (
+return (
     <header className="flex h-18 items-center border-b border-slate-200 bg-white px-8">
 
       {/* Left */}
@@ -295,28 +346,77 @@ const notificationCount =
 
 {/* User */}
 
-<button className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition-all duration-200 hover:bg-slate-50">
-  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-600 text-base font-semibold text-white">
-    A
-  </div>
+<div
+  ref={userMenuRef}
+  className="relative"
+>
+  <button
+    type="button"
+    onClick={() =>
+      setIsUserMenuOpen((prev) => !prev)
+    }
+    className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition-all duration-200 hover:bg-slate-50"
+  >
+    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-600 text-base font-semibold text-white">
+      {user?.fullName?.charAt(0) ?? "A"}
+    </div>
 
-  <div className="hidden text-left lg:block">
-    <h4 className="font-semibold text-slate-800">
-      Admin
-    </h4>
+    <div className="hidden text-left lg:block">
+      <h4 className="font-semibold text-slate-800">
+        {user?.fullName ?? "Admin"}
+      </h4>
 
-    <p className="text-sm text-slate-500">
-      Veterinary Administrator
-    </p>
-  </div>
+      <p className="text-sm text-slate-500">
+        {user?.role ?? "ADMIN"}
+      </p>
+    </div>
 
-  <ChevronDown
-    size={18}
-    className="text-slate-500"
-  />
-</button>
-        
+    <ChevronDown
+      size={18}
+      className={`text-slate-500 transition-transform ${
+        isUserMenuOpen ? "rotate-180" : ""
+      }`}
+    />
+  </button>
 
+  {isUserMenuOpen && (
+    <div
+      className="
+        absolute
+        right-0
+        mt-2
+        w-56
+        rounded-xl
+        border
+        border-slate-200
+        bg-white
+        py-2
+        shadow-lg
+        z-50
+      "
+    >
+      <div className="border-b border-slate-100 px-4 py-3">
+        <p className="font-medium text-slate-800">
+          {user?.fullName ?? "Admin"}
+        </p>
+
+        <p className="text-sm text-slate-500">
+          {user?.email}
+        </p>
+      </div>
+
+           <button
+        type="button"
+        onClick={handleLogout}
+        className="flex w-full items-center gap-3 px-4 py-3 text-red-600 transition-colors hover:bg-red-50"
+      >
+        <LogOut size={18} />
+        <span>Logout</span>
+      </button>
+    </div>
+  )}
+
+</div>
 
       </div>
 

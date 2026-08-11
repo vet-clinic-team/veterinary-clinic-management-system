@@ -224,128 +224,86 @@ return (
 
       </div>
 
-      <SupportStats
+     
+      {loading ? (
+  <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
+    Loading support requests...
+  </div>
+) : error ? (
+  <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
+    {error}
+  </div>
+) : (
+  <>
+  <SupportStats
   supports={requests}
 />
+    
+    <SupportToolbar
+      onAdd={handleAdd}
+      onStatusChange={handleStatusFilter}
+    />
 
-      {loading && (
+    <SupportTable
+      supports={requests}
+      onView={handleView}
+      onUpdateStatus={handleUpdateStatus}
+    />
 
-        <div className="text-slate-500">
+   {totalPages > 1 && (
+  <div className="mt-6 flex items-center justify-between">
+    <button
+      type="button"
+      onClick={() => setPage((prev) => prev - 1)}
+      disabled={page === 0}
+      className="rounded-lg border px-4 py-2 disabled:opacity-50"
+    >
+      Previous
+    </button>
 
-          Loading support requests...
+    <span className="text-sm text-slate-600">
+      Page {page + 1} of {totalPages}
+    </span>
 
-        </div>
+    <button
+      type="button"
+      onClick={() => setPage((prev) => prev + 1)}
+      disabled={page + 1 >= totalPages}
+      className="rounded-lg border px-4 py-2 disabled:opacity-50"
+    >
+      Next
+    </button>
+  </div>
+)}
 
-      )}
+    <Modal
+      open={isModalOpen}
+      title="New Support Request"
+      onClose={handleCloseModal}
+    >
+      <SupportForm
+        onSubmit={handleSubmit}
+        onCancel={handleCloseModal}
+      />
+    </Modal>
 
-      {error && (
+    <SupportDetailDialog
+      open={!!selectedRequest}
+      support={selectedRequest}
+      onClose={() => setSelectedRequest(null)}
+    />
 
-        <div className="text-red-500">
+       <UpdateSupportStatusDialog
+      open={statusRequest !== null}
+      initialStatus={statusRequest?.status ?? "OPEN"}
+      initialAdminResponse={statusRequest?.adminResponse}
+      isLoading={loading}
+      onSubmit={confirmStatusUpdate}
+      onCancel={() => setStatusRequest(null)}
+    />
+  </>
+)}
 
-          {error}
-
-        </div>
-
-      )}
-
-      <SupportToolbar
-  onAdd={handleAdd}
-  onStatusChange={handleStatusFilter}
-/>
-
-      {!loading && !error && (
-
-        <>
-          <SupportTable
-  supports={requests}
-  onView={handleView}
-  onUpdateStatus={handleUpdateStatus}
-/>
-                    {totalPages > 1 && (
-
-            <div className="mt-6 flex items-center justify-between">
-
-              <button
-                type="button"
-                onClick={() =>
-                  setPage((prev) => prev - 1)
-                }
-                disabled={page === 0}
-                className="
-                  rounded-lg
-                  border
-                  px-4
-                  py-2
-                  disabled:opacity-50
-                "
-              >
-                Previous
-              </button>
-
-              <span className="text-sm text-slate-600">
-
-                Page {page + 1} of {totalPages}
-
-              </span>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setPage((prev) => prev + 1)
-                }
-                disabled={page + 1 >= totalPages}
-                className="
-                  rounded-lg
-                  border
-                  px-4
-                  py-2
-                  disabled:opacity-50
-                "
-              >
-                Next
-              </button>
-
-            </div>
-
-          )}
-
-        </>
-
-      )}
-            <Modal
-        open={isModalOpen}
-        title="New Support Request"
-        onClose={handleCloseModal}
-      >
-
-        <SupportForm
-          onSubmit={handleSubmit}
-          onCancel={handleCloseModal}
-        />
-
-      </Modal>
-
-      <SupportDetailDialog
-  open={!!selectedRequest}
-  support={selectedRequest}
-  onClose={() =>
-    setSelectedRequest(null)
-  }
-/>
-<UpdateSupportStatusDialog
-  open={statusRequest !== null}
-  initialStatus={
-    statusRequest?.status ?? "OPEN"
-  }
-  initialAdminResponse={
-    statusRequest?.adminResponse
-  }
-  isLoading={loading}
-  onSubmit={confirmStatusUpdate}
-  onCancel={() =>
-    setStatusRequest(null)
-  }
-/>
     </div>
 
   </DashboardLayout>

@@ -63,17 +63,20 @@ function AppointmentTable({
           <tbody>
             {appointments.length === 0 ? (
               <tr>
-                <td
-                  colSpan={7}
-                  className="
-                    px-6
-                    py-10
-                    text-center
-                    text-slate-500
-                  "
-                >
-                  No appointments found.
-                </td>
+               <td
+  colSpan={7}
+  className="px-6 py-16 text-center"
+>
+  <div className="flex flex-col items-center">
+    <h3 className="text-lg font-semibold text-slate-700">
+      No appointments found
+    </h3>
+
+    <p className="mt-2 text-sm text-slate-500">
+      There are no appointments matching your search.
+    </p>
+  </div>
+</td>
               </tr>
             ) : (
               appointments.map((appointment) => {

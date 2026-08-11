@@ -3,8 +3,10 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/auth/LoginPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import OwnersPage from "./pages/owners/OwnersPage";
+
 import PetsPage from "./pages/pets/PetsPage";
 import PetDetailPage from "./pages/pets/PetDetailPage";
+
 import VeterinariansPage from "./pages/veterinarians/VeterinariansPage";
 import AppointmentsPage from "./pages/appointments/AppointmentsPage";
 import VaccinationsPage from "./pages/vaccinations/VaccinationsPage";
@@ -16,7 +18,6 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 function App() {
   return (
     <Routes>
-
       <Route
         path="/"
         element={<Navigate to="/login" replace />}
@@ -107,7 +108,6 @@ function App() {
           </ProtectedRoute>
         }
       />
-
     </Routes>
   );
 }

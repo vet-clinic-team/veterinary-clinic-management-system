@@ -9,6 +9,7 @@ import AppointmentForm from "../../components/appointments/AppointmentForm";
 import UpdateStatusDialog from "../../components/appointments/UpdateStatusDialog";
 import MedicalNotesDialog from "../../components/appointments/MedicalNotesDialog";
 import AppointmentCalendar from "../../components/appointments/AppointmentCalendar";
+import toast from "react-hot-toast";
 
 import Modal from "../../components/ui/Modal";
 
@@ -191,23 +192,36 @@ function AppointmentsPage() {
     values: CreateVisitRequest
   ) => {
     try {
-      if (selectedAppointment) {
-        await updateVisit(
-          selectedAppointment.id,
-          values
-        );
-      } else {
-        await createVisit(values);
-      }
+  if (selectedAppointment) {
+    await updateVisit(selectedAppointment.id, values);
 
-      setIsModalOpen(false);
-setSelectedAppointment(null);
+    toast.success("Appointment updated successfully.");
+  } else {
+    await createVisit(values);
 
-await fetchVisits();
+    toast.success("Appointment created successfully.");
+  }
 
-    } catch (err) {
-      console.error(err);
-    }
+  setIsModalOpen(false);
+  setSelectedAppointment(null);
+
+  await fetchVisits();
+
+} catch (error: any) {
+  console.error(error);
+
+  if (error.response?.status === 409) {
+    toast.error(
+      "Cannot create appointment. Another appointment exists for this veterinarian."
+    );
+  } else {
+    const message =
+      error?.response?.data?.message ??
+      "Failed to save appointment.";
+
+    toast.error(message);
+  }
+}
   };
 
   const confirmStatusUpdate = async (
@@ -224,52 +238,73 @@ await fetchVisits();
       setStatusAppointment(null);
 
 await fetchVisits();
+toast.success("Appointment status updated successfully.");
 
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (error: any) {
+  console.error(error);
+
+  const message =
+    error?.response?.data?.message ??
+    "Failed to save appointment.";
+
+  toast.error(message);
+}
   };
 
   const confirmMedicalNotes = async (
-    values: UpdateMedicalNotesRequest
-  ) => {
-    if (!medicalAppointment) return;
+  values: UpdateMedicalNotesRequest
+) => {
+  if (!medicalAppointment) return;
 
-    try {
-      await updateMedicalNotes(
-        medicalAppointment.id,
-        values
-      );
+  try {
+    await updateMedicalNotes(
+      medicalAppointment.id,
+      values
+    );
 
-      setMedicalAppointment(null);
+    toast.success(
+      "Medical notes updated successfully."
+    );
 
-await fetchVisits();
+    setMedicalAppointment(null);
 
-    } catch (err) {
-      console.error(err);
-    }
-  };
+    await fetchVisits();
+
+  } catch (error: any) {
+    console.error(error);
+
+    const message =
+      error?.response?.data?.message ??
+      "Failed to update medical notes.";
+
+    toast.error(message);
+  }
+};
   const handleCreateFollowUp = async (
   appointment: Visit
 ) => {
   try {
     await createFollowUpVisit(appointment.id);
 
-    alert("Follow-up visit created successfully.");
+    toast.success(
+      "Follow-up visit created successfully."
+    );
 
-await fetchVisits();
+    await fetchVisits();
 
-  } catch (err: any) {
-    console.error(err);
+  } catch (error: any) {
+    console.error(error);
 
-    if (err.response?.status === 409) {
-      alert(
+    if (error.response?.status === 409) {
+      toast.error(
         "A follow-up visit has already been created for this appointment."
       );
     } else {
-      alert(
-        "Failed to create follow-up visit."
-      );
+      const message =
+        error?.response?.data?.message ??
+        "Failed to create follow-up visit.";
+
+      toast.error(message);
     }
   }
 };
@@ -288,22 +323,26 @@ const handleCalendarUpdate = async (
       }
     );
 
-    alert("Appointment rescheduled successfully.");
+    toast.success(
+      "Appointment rescheduled successfully."
+    );
 
     await fetchVisits();
-await fetchCalendarVisits();
+    await fetchCalendarVisits();
 
-  } catch (err: any) {
-    console.error(err);
+  } catch (error: any) {
+    console.error(error);
 
-    if (err.response?.status === 409) {
-      alert(
+    if (error.response?.status === 409) {
+      toast.error(
         "Cannot reschedule. Another appointment exists for this veterinarian."
       );
     } else {
-      alert(
-        "Failed to reschedule appointment."
-      );
+      const message =
+        error?.response?.data?.message ??
+        "Failed to reschedule appointment.";
+
+      toast.error(message);
     }
   }
 };
@@ -386,99 +425,100 @@ const rows = appointments.map((appointment) => {
 );
     return (
     <DashboardLayout>
-      <div className="space-y-6">
+     <div className="space-y-6">
 
-        <div>
-  <h1 className="text-3xl font-bold text-slate-900">
-    Appointments
-  </h1>
+  <div>
+    <h1 className="text-3xl font-bold text-slate-900">
+      Appointments
+    </h1>
 
-  <p className="mt-2 text-slate-500">
-    Manage appointments and schedules.
-  </p>
-</div>
-
-        <div
-  className="
-    rounded-2xl
-    border
-    border-slate-200
-    bg-white
-    p-6
-    shadow-sm
-  "
->
-  <AppointmentStats
-    appointments={appointments}
-  />
-</div>
-
-
-<div
-  className="
-    rounded-2xl
-    border
-    border-slate-200
-    bg-white
-    p-5
-    shadow-sm
-  "
->
-  <AppointmentToolbar
-    onSearch={setSearchTerm}
-    onSort={setSortOption}
-    onAdd={handleAdd}
-    onExport={handleExportAppointments}
-    viewMode={viewMode}
-    onViewModeChange={setViewMode}
-  />
-</div>
+    <p className="mt-2 text-slate-500">
+      Manage appointments and schedules.
+    </p>
+  </div>
 
         
-{viewMode === "table" ? (
-  <AppointmentTable
-    appointments={filteredAppointments}
-    pets={pets}
-    veterinarians={veterinarians}
-    onEdit={handleEdit}
-    onUpdateStatus={handleUpdateStatus}
-    onMedicalNotes={handleMedicalNotes}
-    onCreateFollowUp={handleCreateFollowUp}
-  />
+{loading ? (
+  <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
+    Loading appointments...
+  </div>
+) : error ? (
+  <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
+    {error}
+  </div>
 ) : (
-  <AppointmentCalendar
-  appointments={calendarAppointments}
-  pets={pets}
-  veterinarians={veterinarians}
-  onUpdate={handleCalendarUpdate}
-/>
-)}
+  <>
+    <AppointmentStats appointments={appointments} />
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              disabled={page === 0}
-              onClick={() => setPage((prev) => prev - 1)}
-              className="rounded border px-3 py-2 disabled:opacity-50"
-            >
-              Previous
-            </button>
+    <AppointmentToolbar
+      onSearch={setSearchTerm}
+      onSort={setSortOption}
+      onAdd={handleAdd}
+      onExport={handleExportAppointments}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+    />
 
-            <span className="text-sm text-slate-600">
-              Page {page + 1} of {totalPages}
-            </span>
+    {filteredAppointments.length === 0 ? (
+      <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
+        <h3 className="text-lg font-semibold text-slate-700">
+          No appointments found
+        </h3>
 
-            <button
-              type="button"
-              disabled={page + 1 >= totalPages}
-              onClick={() => setPage((prev) => prev + 1)}
-              className="rounded border px-3 py-2 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
+        <p className="mt-2 text-slate-500">
+          There are no appointments matching your search.
+        </p>
+      </div>
+    ) : (
+      <>
+        {viewMode === "table" ? (
+          <AppointmentTable
+            appointments={filteredAppointments}
+            pets={pets}
+            veterinarians={veterinarians}
+            onEdit={handleEdit}
+            onUpdateStatus={handleUpdateStatus}
+            onMedicalNotes={handleMedicalNotes}
+            onCreateFollowUp={handleCreateFollowUp}
+          />
+        ) : (
+          <AppointmentCalendar
+            appointments={calendarAppointments}
+            pets={pets}
+            veterinarians={veterinarians}
+            onUpdate={handleCalendarUpdate}
+          />
         )}
+
+        {viewMode === "table" && totalPages > 1 && (
+  <div className="mt-6 flex items-center justify-between">
+    <button
+      type="button"
+      onClick={() => setPage((prev) => prev - 1)}
+      disabled={page === 0}
+      className="rounded-lg border px-4 py-2 disabled:opacity-50"
+    >
+      Previous
+    </button>
+
+    <span className="text-sm text-slate-600">
+      Page {page + 1} of {totalPages}
+    </span>
+
+    <button
+      type="button"
+      onClick={() => setPage((prev) => prev + 1)}
+      disabled={page + 1 >= totalPages}
+      className="rounded-lg border px-4 py-2 disabled:opacity-50"
+    >
+      Next
+    </button>
+  </div>
+)}
+      </>
+    )}
+  </>
+)}
 
         <Modal
           open={isModalOpen}
@@ -555,12 +595,6 @@ const rows = appointments.map((appointment) => {
             />
           )}
         </Modal>
-
-        {error && (
-          <div className="rounded-xl bg-red-50 p-4 text-red-600">
-            {error}
-          </div>
-        )}
 
       </div>
     </DashboardLayout>
