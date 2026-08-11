@@ -7,17 +7,21 @@ type OwnerTableProps = {
   owners: Owner[];
   onEdit: (owner: Owner) => void;
   onDelete: (owner: Owner) => void;
+  onArchive: (owner: Owner) => void;
+  onActivate: (owner: Owner) => void;
 };
 
 function OwnerTable({
   owners,
   onEdit,
   onDelete,
+  onArchive,
+  onActivate,
 }: OwnerTableProps) {
   return (
     <Card>
       <div className="overflow-x-auto">
-        <table className="min-w-full">
+        <table className="w-full">
           <thead
             className="
               border-b
@@ -26,23 +30,23 @@ function OwnerTable({
             "
           >
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Owner
               </th>
 
-              <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Email
               </th>
 
-              <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Phone
               </th>
 
-              <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Pets
               </th>
 
-              <th className="px-6 py-4 text-left text-xs font-semibold uppercase text-slate-500">
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Actions
               </th>
             </tr>
@@ -57,6 +61,7 @@ function OwnerTable({
                     px-6
                     py-10
                     text-center
+                    text-sm
                     text-slate-500
                   "
                 >
@@ -70,6 +75,8 @@ function OwnerTable({
                   owner={owner}
                   onEdit={onEdit}
                   onDelete={onDelete}
+                  onArchive={onArchive}
+                  onActivate={onActivate}
                 />
               ))
             )}

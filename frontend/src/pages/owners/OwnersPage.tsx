@@ -8,7 +8,6 @@ import OwnerTable from "../../components/owners/OwnerTable";
 import OwnerForm from "../../components/owners/OwnerForm";
 import DeleteOwnerDialog from "../../components/owners/DeleteOwnerDialog";
 
-
 import Modal from "../../components/ui/Modal";
 
 import {
@@ -17,6 +16,8 @@ import {
   createOwner,
   updateOwner,
   deleteOwner as deleteOwnerApi,
+  archiveOwner,
+  activateOwner,
 } from "../../services/ownerService";
 
 import type {
@@ -24,61 +25,42 @@ import type {
   CreateOwnerRequest,
   OwnerStatsResponse,
 } from "../../types/owner";
+
 import toast from "react-hot-toast";
 
-
+type OwnerTab = "active" | "archived";
 
 function OwnersPage() {
-
-
-
   const [owners, setOwners] =
     useState<Owner[]>([]);
-    const [stats, setStats] =
-  useState<OwnerStatsResponse>({
-    totalOwners: 0,
-    totalPets: 0,
-    newOwnersThisMonth: 0,
-  });
 
-
+  const [stats, setStats] =
+    useState<OwnerStatsResponse>({
+      totalOwners: 0,
+      totalPets: 0,
+      newOwnersThisMonth: 0,
+    });
 
   const [loading, setLoading] =
     useState(true);
-    
-   
-
-
 
   const [error, setError] =
     useState("");
 
-
-
   const [isModalOpen, setIsModalOpen] =
     useState(false);
-
-
 
   const [selectedOwner, setSelectedOwner] =
     useState<Owner | null>(null);
 
-
-
   const [deleteOwner, setDeleteOwner] =
     useState<Owner | null>(null);
-
-
 
   const [deleteError, setDeleteError] =
     useState("");
 
-
-
   const [searchTerm, setSearchTerm] =
     useState("");
-
-
 
   const [sortOption, setSortOption] =
     useState("nameAsc");
@@ -87,336 +69,294 @@ function OwnersPage() {
 
   const [size] = useState(20);
 
-  const [totalPages, setTotalPages] = useState(0);
+  const [totalPages, setTotalPages] =
+    useState(0);
+
+  const [activeTab, setActiveTab] =
+    useState<OwnerTab>("active");
+
   const fetchOwners = async () => {
-  try {
-    if (owners.length === 0) {
-  setLoading(true);
-}
-    setError("");
+    try {
+      if (owners.length === 0) {
+        setLoading(true);
+      }
 
-    let sort: string | undefined;
+      setError("");
 
-    switch (sortOption) {
-      case "nameAsc":
-        sort = "firstName,asc";
-        break;
+      let sort: string | undefined;
 
-      case "nameDesc":
-        sort = "firstName,desc";
-        break;
+      switch (sortOption) {
+        case "nameAsc":
+          sort = "firstName,asc";
+          break;
 
-      case "newest":
-        sort = "createdAt,desc";
-        break;
+        case "nameDesc":
+          sort = "firstName,desc";
+          break;
 
-      case "oldest":
-        sort = "createdAt,asc";
-        break;
+        case "newest":
+          sort = "createdAt,desc";
+          break;
 
-      default:
-        sort = undefined;
+        case "oldest":
+          sort = "createdAt,asc";
+          break;
+
+        default:
+          sort = undefined;
+      }
+
+      const data = await getOwners({
+        page,
+        size,
+        search: searchTerm || undefined,
+        sort,
+      });
+
+      setOwners(data.content);
+      setTotalPages(data.totalPages);
+    } catch (error) {
+      console.error(error);
+
+      setError("Failed to load owners.");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const data = await getOwners({
-      page,
-      size,
-      search: searchTerm || undefined,
-      sort,
-    });
+  const fetchOwnerStats = async () => {
+    try {
+      const data = await getOwnerStats();
 
-    setOwners(data.content);
-    setTotalPages(data.totalPages);
+      setStats(data);
+    } catch (error) {
+      console.error(
+        "Failed to load owner stats:",
+        error
+      );
+    }
+  };
 
-  } catch (error) {
-    console.error(error);
+  useEffect(() => {
+    fetchOwners();
+  }, [
+    page,
+    size,
+    searchTerm,
+    sortOption,
+  ]);
 
-    setError(
-      "Failed to load owners."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+  useEffect(() => {
+    fetchOwnerStats();
+  }, []);
 
-const fetchOwnerStats = async () => {
-  try {
-    const data =
-      await getOwnerStats();
+  const activeOwners = owners.filter(
+    (owner) => !owner.archived
+  );
 
-    setStats(data);
-  } catch (error) {
-    console.error(
-      "Failed to load owner stats:",
-      error
-    );
-  }
-};
-useEffect(() => {
-  fetchOwners();
-}, [page, size, searchTerm, sortOption]);
+  const archivedOwners = owners.filter(
+    (owner) => owner.archived
+  );
 
-useEffect(() => {
-  fetchOwnerStats();
-}, []);
+  const visibleOwners =
+    activeTab === "active"
+      ? activeOwners
+      : archivedOwners;
 
   const handleExportOwners = () => {
-    
-
-
     const headers = [
-
       "ID",
       "First Name",
       "Last Name",
       "Email",
       "Phone",
-
     ];
 
-
-
-    const rows = owners.map((owner) => [
-
-      owner.id,
-
-      owner.firstName,
-
-      owner.lastName,
-
-      owner.email,
-
-      owner.phone,
-
-    ]);
-
-
-
-    const csvContent = [
-
-      headers.join(","),
-
-      ...rows.map((row) =>
-        row.join(",")
-      )
-
-    ].join("\n");
-
-
-
-    const blob = new Blob(
-
-      [csvContent],
-
-      {
-        type:
-          "text/csv;charset=utf-8;",
-      }
-
+    const rows = visibleOwners.map(
+      (owner) => [
+        owner.id,
+        owner.firstName,
+        owner.lastName,
+        owner.email,
+        owner.phone,
+      ]
     );
 
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) =>
+        row.join(",")
+      ),
+    ].join("\n");
 
+    const blob = new Blob(
+      [csvContent],
+      {
+        type: "text/csv;charset=utf-8;",
+      }
+    );
 
     const url =
       URL.createObjectURL(blob);
 
-
-
     const link =
       document.createElement("a");
 
-
-
     link.href = url;
 
-
     link.download =
-      "owners-export.csv";
-
-
+      activeTab === "active"
+        ? "active-owners-export.csv"
+        : "archived-owners-export.csv";
 
     link.click();
 
-
-
     URL.revokeObjectURL(url);
-
-
   };
-
-
-
-
-
 
   const handleAdd = () => {
-
     setSelectedOwner(null);
-
     setIsModalOpen(true);
-
   };
 
-
-
-
-
-  const handleEdit = (
-    owner: Owner
-  ) => {
-
+  const handleEdit = (owner: Owner) => {
     setSelectedOwner(owner);
-
     setIsModalOpen(true);
-
   };
 
+  const handleDelete = (owner: Owner) => {
+    setDeleteOwner(owner);
+  };
 
-
-
-
-  const handleDelete = (
+  const handleArchive = async (
     owner: Owner
   ) => {
+    try {
+      await archiveOwner(owner.id);
 
-    setDeleteOwner(owner);
+      toast.success(
+        "Owner archived successfully."
+      );
 
+      await fetchOwners();
+    } catch (error: any) {
+      console.error(
+        "Archive owner error:",
+        error
+      );
+
+      const message =
+        error?.response?.data?.message ??
+        "This owner cannot be archived.";
+
+      toast.error(message);
+    }
   };
 
+  const handleActivate = async (
+    owner: Owner
+  ) => {
+    try {
+      await activateOwner(owner.id);
 
+      toast.success(
+        "Owner activated successfully."
+      );
 
+      await fetchOwners();
+    } catch (error: any) {
+      console.error(
+        "Activate owner error:",
+        error
+      );
 
+      const message =
+        error?.response?.data?.message ??
+        "Failed to activate owner.";
+
+      toast.error(message);
+    }
+  };
 
   const handleSubmit = async (
     values: CreateOwnerRequest
   ) => {
-
-
     try {
-      
-
-
       if (selectedOwner) {
+        await updateOwner(
+          selectedOwner.id,
+          values
+        );
 
-  await updateOwner(
-    selectedOwner.id,
-    values
-  );
+        toast.success(
+          "Owner updated successfully."
+        );
+      } else {
+        await createOwner(values);
 
-  toast.success("Owner updated successfully.");
-
-} else {
-
-  await createOwner(values);
-
-  toast.success("Owner created successfully.");
-
-}
-
-
+        toast.success(
+          "Owner created successfully."
+        );
+      }
 
       await fetchOwners();
-
-
 
       setIsModalOpen(false);
-
       setSelectedOwner(null);
-      } catch (error: any) {
+    } catch (error: any) {
+      console.error(
+        "Save owner error:",
+        error
+      );
 
-  console.error(
-    "Save owner error:",
-    error
-  );
+      const message =
+        error?.response?.data?.message ??
+        "Failed to save owner.";
 
-  const message =
-    error?.response?.data?.message ??
-    "Failed to save owner.";
-
-  toast.error(message);
-
-
-
-  
-
-}
-
-
-
-    
-
+      toast.error(message);
+    }
   };
 
-
-
-
-
   const confirmDelete = async () => {
-
-
-    if(!deleteOwner) return;
-
-
+    if (!deleteOwner) {
+      return;
+    }
 
     try {
-
-
       setDeleteError("");
 
-
-
       await deleteOwnerApi(
-
         deleteOwner.id
-
       );
-      toast.success("Owner deleted successfully.");
 
-
+      toast.success(
+        "Owner deleted successfully."
+      );
 
       await fetchOwners();
 
-
-
       setDeleteOwner(null);
+    } catch (error: any) {
+      console.error(
+        "Delete owner error:",
+        error
+      );
 
+      const message =
+        error?.response?.data?.message ??
+        "This owner cannot be deleted because they have registered pets.";
 
+      setDeleteError(message);
 
-   } catch (error: any) {
-
-  console.error(
-    "Delete owner error:",
-    error
-  );
-
-  const message =
-    error?.response?.data?.message ??
-    "This owner cannot be deleted because they have registered pets.";
-
-  setDeleteError(message);
-
-  toast.error(message);
-
-}
-
+      toast.error(message);
+    }
   };
 
-
-
-
-
-
   return (
-
     <DashboardLayout>
-
-
       <div className="space-y-8">
-
-
+        {/* Page Header */}
         <div>
-
-
           <h1
             className="
               text-3xl
@@ -424,11 +364,8 @@ useEffect(() => {
               text-slate-900
             "
           >
-
             Owners
-
           </h1>
-
 
           <p
             className="
@@ -436,199 +373,191 @@ useEffect(() => {
               text-slate-500
             "
           >
-
             Manage pet owners and their information.
-
           </p>
-
-
         </div>
-        
-  
-    {loading ? (
-  <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
-    Loading owners...
-  </div>
-) : error ? (
-  <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
-    {error}
-  </div>
-) : (
-  <>
-    <OwnerStats stats={stats} />
 
-    <OwnerToolbar
-      onAdd={handleAdd}
-      onSearch={(value) => {
-        setSearchTerm(value);
-        setPage(0);
-      }}
-      onSort={(value) => {
-        setSortOption(value);
-        setPage(0);
-      }}
-      onExport={handleExportOwners}
-    />
-
-    {owners.length === 0 ? (
-      <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
-        <h3 className="text-lg font-semibold text-slate-700">
-          No owners found
-        </h3>
-
-        <p className="mt-2 text-slate-500">
-          There are no owners matching your search.
-        </p>
-      </div>
-    ) : (
-      <>
-        <OwnerTable
-          owners={owners}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
-
-        {totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between">
-            ...
+        {loading ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
+            Loading owners...
           </div>
+        ) : error ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
+            {error}
+          </div>
+        ) : (
+          <>
+            <OwnerStats stats={stats} />
+
+{/* Owner Tabs */}
+<div
+  className="
+    flex
+    w-full
+    gap-1
+    rounded-xl
+    border
+    border-slate-200
+    bg-white
+    p-1
+    shadow-sm
+    sm:w-fit
+  "
+>
+  <button
+    type="button"
+    onClick={() => {
+      setActiveTab("active");
+      setPage(0);
+    }}
+    className={`
+      rounded-xl
+      px-6
+      py-3
+      text-sm
+      font-medium
+      transition
+      ${
+        activeTab === "active"
+          ? "bg-blue-600 text-white shadow-sm"
+          : "text-slate-700 hover:bg-slate-50"
+      }
+    `}
+  >
+    Active Owners
+   
+  </button>
+
+  <button
+    type="button"
+    onClick={() => {
+      setActiveTab("archived");
+      setPage(0);
+    }}
+    className={`
+      rounded-xl
+      px-6
+      py-3
+      text-sm
+      font-medium
+      transition
+      ${
+        activeTab === "archived"
+          ? "bg-blue-600 text-white shadow-sm"
+          : "text-slate-700 hover:bg-slate-50"
+      }
+    `}
+  >
+    Archived Owners
+   
+  </button>
+</div>
+
+<OwnerToolbar
+  onAdd={handleAdd}
+  onSearch={(value) => {
+    setSearchTerm(value);
+    setPage(0);
+  }}
+  onSort={(value) => {
+    setSortOption(value);
+    setPage(0);
+  }}
+  onExport={handleExportOwners}
+/>
+
+          
+
+            {visibleOwners.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
+                <h3 className="text-lg font-semibold text-slate-700">
+                  {activeTab === "active"
+                    ? "No active owners"
+                    : "No archived owners"}
+                </h3>
+
+                <p className="mt-2 text-slate-500">
+                  {activeTab === "active"
+                    ? "There are no active owners matching your search."
+                    : "There are no archived owners matching your search."}
+                </p>
+              </div>
+            ) : (
+              <>
+                <OwnerTable
+                  owners={visibleOwners}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onArchive={handleArchive}
+                  onActivate={handleActivate}
+                />
+
+                {totalPages > 1 && (
+                  <div className="mt-6 flex items-center justify-between">
+                    ...
+                  </div>
+                )}
+              </>
+            )}
+          </>
         )}
-      </>
-    )}
-  </>
-)}
 
-
-
-
-
-
+        {/* Add / Edit Owner Modal */}
         <Modal
-
           open={isModalOpen}
-
           title={
             selectedOwner
               ? "Edit Owner"
               : "Add New Owner"
           }
-
           onClose={() => {
-
             setIsModalOpen(false);
-
             setSelectedOwner(null);
-
           }}
-
         >
-
-
-
           <OwnerForm
-
-
             initialValues={
-
               selectedOwner
-
-              ? {
-
-                  firstName:
-                    selectedOwner.firstName,
-
-                  lastName:
-                    selectedOwner.lastName,
-
-                  email:
-                    selectedOwner.email,
-
-                  phone:
-                    selectedOwner.phone,
-
-                  address:
-                    selectedOwner.address,
-
-                }
-
-              : undefined
-
+                ? {
+                    firstName:
+                      selectedOwner.firstName,
+                    lastName:
+                      selectedOwner.lastName,
+                    email:
+                      selectedOwner.email,
+                    phone:
+                      selectedOwner.phone,
+                    address:
+                      selectedOwner.address,
+                  }
+                : undefined
             }
-            
-
-
-
             onSubmit={handleSubmit}
-
-
             onCancel={() => {
-
               setIsModalOpen(false);
-
               setSelectedOwner(null);
-
             }}
-
           />
-
-
         </Modal>
 
-
-
-
-
-
-
+        {/* Delete Owner Dialog */}
         <DeleteOwnerDialog
-
-
           open={!!deleteOwner}
-
-
-
           ownerName={
-
             deleteOwner
-
-            ? `${deleteOwner.firstName} ${deleteOwner.lastName}`
-
-            : ""
-
+              ? `${deleteOwner.firstName} ${deleteOwner.lastName}`
+              : ""
           }
-
-
-
           errorMessage={deleteError}
-
-
-
           onClose={() => {
-
             setDeleteOwner(null);
-
             setDeleteError("");
-
           }}
-
-
-
           onConfirm={confirmDelete}
-
-
         />
-
-
-
       </div>
-
-
     </DashboardLayout>
-
   );
-
 }
-
-
 
 export default OwnersPage;

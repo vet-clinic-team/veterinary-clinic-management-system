@@ -5,6 +5,7 @@ import LoginPage from "./pages/auth/LoginPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 
 import OwnersPage from "./pages/owners/OwnersPage";
+import OwnerDetailPage from "./pages/owners/OwnerDetailPage";
 
 import PetsPage from "./pages/pets/PetsPage";
 import PetDetailPage from "./pages/pets/PetDetailPage";
@@ -54,6 +55,15 @@ function App() {
         element={
           <ProtectedRoute>
             <OwnersPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/owners/:id"
+        element={
+          <ProtectedRoute>
+            <OwnerDetailPage />
           </ProtectedRoute>
         }
       />

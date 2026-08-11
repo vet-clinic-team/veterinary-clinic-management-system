@@ -85,3 +85,25 @@ export const deleteOwner = async (
     `/owners/${id}`
   );
 };
+
+// Archive owner
+export const archiveOwner = async (
+  id: number
+) => {
+  const response = await api.patch<Owner>(
+    `/owners/${id}/archive`
+  );
+
+  return response.data;
+};
+
+// Activate archived owner
+export const activateOwner = async (
+  id: number
+) => {
+  const response = await api.patch<Owner>(
+    `/owners/${id}/activate`
+  );
+
+  return response.data;
+};

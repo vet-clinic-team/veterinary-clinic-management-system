@@ -1,4 +1,5 @@
 import type { Pet } from "./pet";
+import type { Invoice } from "./invoice";
 
 export type Owner = {
   id: number;
@@ -8,6 +9,7 @@ export type Owner = {
   email: string;
   address: string;
   petCount: number;
+  archived: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -31,6 +33,8 @@ export type OwnerDetail = {
   address: string;
   petCount: number;
   pets: Pet[];
+  invoices: Invoice[];
+  archived: boolean;
   createdAt: string;
   updatedAt: string;
 };
