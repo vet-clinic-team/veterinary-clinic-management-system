@@ -14,7 +14,6 @@ import type { Owner } from "../../types/owner";
 type OwnerRowProps = {
   owner: Owner;
   onEdit: (owner: Owner) => void;
-  onDelete: (owner: Owner) => void;
   onArchive: (owner: Owner) => void;
   onActivate: (owner: Owner) => void;
 };
@@ -22,7 +21,6 @@ type OwnerRowProps = {
 function OwnerRow({
   owner,
   onEdit,
-  onDelete,
   onArchive,
   onActivate,
 }: OwnerRowProps) {
@@ -86,13 +84,13 @@ function OwnerRow({
           </div>
         </td>
 
-        <td className="px-6 py-5 whitespace-nowrap">
-  {owner.email}
-</td>
+        <td className="whitespace-nowrap px-6 py-5">
+          {owner.email}
+        </td>
 
-<td className="px-6 py-5 whitespace-nowrap">
-  {owner.phone}
-</td>
+        <td className="whitespace-nowrap px-6 py-5">
+          {owner.phone}
+        </td>
 
         <td className="px-6 py-5">
           {owner.petCount}
@@ -114,9 +112,6 @@ function OwnerRow({
             }
             onActivate={() =>
               onActivate(owner)
-            }
-            onDelete={() =>
-              onDelete(owner)
             }
           />
         </td>

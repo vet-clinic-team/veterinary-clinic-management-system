@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import type { CreatePetRequest } from "../../types/pet";
 import type { Owner } from "../../types/owner";
 
-import { getOwners } from "../../services/ownerService";
+
 
 import {
   petSchema,
@@ -15,23 +15,29 @@ import {
 
 type PetFormProps = {
   initialValues?: CreatePetRequest;
+  owners: Owner[];
+  selectedOwnerId?: number;
   isLoading?: boolean;
   mode?: "create" | "edit";
   onSubmit: (values: CreatePetRequest) => void;
   onCancel?: () => void;
+  onAddOwner?: () => void;
 };
 
 
 function PetForm({
   initialValues,
+  owners,
+  selectedOwnerId,
   isLoading = false,
   mode = "create",
   onSubmit,
   onCancel,
+  onAddOwner,
 }: PetFormProps) {
 
 
-  const [owners, setOwners] = useState<Owner[]>([]);
+ 
 
 
 
@@ -63,32 +69,7 @@ function PetForm({
 
   // Load owners from API
 
-  useEffect(() => {
 
-
-    const fetchOwners = async () => {
-
-      try {
-
-        const data = await getOwners();
-
-
-        setOwners(
-          data.content
-        );
-
-
-      } catch {
-  setOwners([]);
-}
-
-    };
-
-
-    fetchOwners();
-
-
-  }, []);
 
 
 
@@ -114,6 +95,11 @@ function PetForm({
     initialValues,
     reset
   ]);
+  useEffect(() => {
+  if (selectedOwnerId) {
+    setValue("ownerId", selectedOwnerId);
+  }
+}, [selectedOwnerId, setValue]);
 
 
 
@@ -304,22 +290,30 @@ const disableBreed =
 
             </select>
 
+<button
+  type="button"
+  onClick={onAddOwner}
+  className="
+    mt-2
+    text-sm
+    font-medium
+    text-blue-600
+    transition
+    hover:text-blue-700
+  "
+>
+  + Add New Owner
+</button>
 
-
-
-            {errors.ownerId && (
-
-              <p className="
-                mt-1
-                text-sm
-                text-red-500
-              ">
-
-                {errors.ownerId.message}
-
-              </p>
-
-            )}
+{errors.ownerId && (
+  <p className="
+    mt-1
+    text-sm
+    text-red-500
+  ">
+    {errors.ownerId.message}
+  </p>
+)}
 
 
 

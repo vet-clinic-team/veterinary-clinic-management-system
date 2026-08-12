@@ -1,7 +1,6 @@
 import {
   Eye,
   Pencil,
-  Trash2,
   Archive,
   ArchiveRestore,
 } from "lucide-react";
@@ -12,7 +11,6 @@ type OwnerActionsProps = {
   onEdit?: () => void;
   onArchive?: () => void;
   onActivate?: () => void;
-  onDelete?: () => void;
 };
 
 function OwnerActions({
@@ -21,7 +19,6 @@ function OwnerActions({
   onEdit,
   onArchive,
   onActivate,
-  onDelete,
 }: OwnerActionsProps) {
   return (
     <div
@@ -89,20 +86,6 @@ function OwnerActions({
           <Archive size={20} />
         </button>
       )}
-
-      {/* Delete */}
-      <button
-        type="button"
-        onClick={onDelete}
-        className="
-          text-red-600
-          transition
-          hover:text-red-800
-        "
-        title="Delete owner"
-      >
-        <Trash2 size={20} />
-      </button>
     </div>
   );
 }

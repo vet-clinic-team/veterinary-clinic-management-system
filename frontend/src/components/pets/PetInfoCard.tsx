@@ -1,10 +1,16 @@
+import { Pencil } from "lucide-react";
+
 import type { Pet } from "../../types/pet";
 
 type PetInfoCardProps = {
   pet: Pet;
+  onEdit: () => void;
 };
 
-function PetInfoCard({ pet }: PetInfoCardProps) {
+function PetInfoCard({
+  pet,
+  onEdit,
+}: PetInfoCardProps) {
   return (
     <div
       className="
@@ -16,9 +22,34 @@ function PetInfoCard({ pet }: PetInfoCardProps) {
         shadow-sm
       "
     >
-      <h2 className="text-xl font-semibold text-slate-900">
-        Pet Information
-      </h2>
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-xl font-semibold text-slate-900">
+          Pet Information
+        </h2>
+
+        <button
+          type="button"
+          onClick={onEdit}
+          className="
+            flex
+            items-center
+            gap-2
+            rounded-lg
+            bg-blue-600
+            px-4
+            py-2
+            text-sm
+            font-medium
+            text-white
+            transition
+            hover:bg-blue-700
+          "
+        >
+          <Pencil className="h-4 w-4" />
+          Edit Pet
+        </button>
+      </div>
 
       {/* Basic Information */}
       <section className="mt-8">

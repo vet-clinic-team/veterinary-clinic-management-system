@@ -6,10 +6,14 @@ import type { Vaccination } from "../../types/vaccination";
 
 type PetVaccinationHistoryProps = {
   petId: number;
+  onAddVaccination: () => void;
+  onEditVaccination: (vaccination: Vaccination) => void;
 };
 
 function PetVaccinationHistory({
   petId,
+  onAddVaccination,
+  onEditVaccination,
 }: PetVaccinationHistoryProps) {
   const [vaccinations, setVaccinations] =
     useState<Vaccination[]>([]);
@@ -51,16 +55,35 @@ function PetVaccinationHistory({
         shadow-sm
       "
     >
-      <h2
-        className="
-          mb-6
-          text-xl
-          font-semibold
-          text-slate-900
-        "
-      >
-        Vaccination History
-      </h2>
+      <div className="mb-6 flex items-center justify-between">
+        <h2
+          className="
+            text-xl
+            font-semibold
+            text-slate-900
+          "
+        >
+          Vaccination History
+        </h2>
+
+        <button
+          type="button"
+          onClick={onAddVaccination}
+          className="
+            rounded-lg
+            bg-blue-600
+            px-4
+            py-2
+            text-sm
+            font-medium
+            text-white
+            transition
+            hover:bg-blue-700
+          "
+        >
+          + Add Vaccination
+        </button>
+      </div>
 
       {loading ? (
         <p className="text-slate-500">
@@ -88,6 +111,7 @@ function PetVaccinationHistory({
                     flex
                     items-center
                     justify-between
+                    gap-4
                   "
                 >
                   <h3
@@ -103,19 +127,43 @@ function PetVaccinationHistory({
                     )}
                   </h3>
 
-                  <span
-                    className="
-                      rounded-full
-                      bg-emerald-100
-                      px-3
-                      py-1
-                      text-xs
-                      font-medium
-                      text-emerald-700
-                    "
-                  >
-                    Completed
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="
+                        rounded-full
+                        bg-emerald-100
+                        px-3
+                        py-1
+                        text-xs
+                        font-medium
+                        text-emerald-700
+                      "
+                    >
+                      Completed
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onEditVaccination(
+                          vaccination
+                        )
+                      }
+                      className="
+                        rounded-lg
+                        bg-blue-50
+                        px-3
+                        py-1.5
+                        text-xs
+                        font-medium
+                        text-blue-600
+                        transition
+                        hover:bg-blue-100
+                      "
+                    >
+                      Edit
+                    </button>
+                  </div>
                 </div>
 
                 <div

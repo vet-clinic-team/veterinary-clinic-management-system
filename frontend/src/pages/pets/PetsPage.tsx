@@ -10,6 +10,7 @@ import PetToolbar from "../../components/pets/PetToolbar";
 import PetTable from "../../components/pets/PetTable";
 import PetForm from "../../components/pets/PetForm";
 import DeletePetDialog from "../../components/pets/DeletePetDialog";
+import OwnerForm from "../../components/owners/OwnerForm";
 import toast from "react-hot-toast";
 
 
@@ -22,7 +23,10 @@ import {
   activatePet,
 } from "../../services/petService";
 
-import { getOwners } from "../../services/ownerService";
+import {
+  getOwners,
+  createOwner,
+} from "../../services/ownerService";
 
 import type {
   CreatePetRequest,
@@ -99,6 +103,10 @@ const [totalPages, setTotalPages] = useState(0);
 
   const [selectedPet, setSelectedPet] =
     useState<Pet | null>(null);
+    const [isOwnerModalOpen, setIsOwnerModalOpen] =
+  useState(false);
+  const [selectedOwnerId, setSelectedOwnerId] =
+  useState<number | undefined>(undefined);
 
 
 
@@ -315,6 +323,38 @@ useEffect(() => {
 
   URL.revokeObjectURL(url);
 
+};
+const handleAddOwner = () => {
+  setIsOwnerModalOpen(true);
+};
+const handleSubmitOwner = async (
+  values: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    address: string;
+  }
+) => {
+  try {
+    const newOwner = await createOwner(values);
+
+    await fetchOwners();
+
+    setSelectedOwnerId(newOwner.id);
+
+    setIsOwnerModalOpen(false);
+
+    toast.success("Owner created successfully.");
+  } catch (error: any) {
+    console.error(error);
+
+    const message =
+      error?.response?.data?.message ??
+      "Failed to create owner.";
+
+    toast.error(message);
+  }
 };
 
  
@@ -667,85 +707,54 @@ return (
 
 
 
-          <PetForm
+         <PetForm
+  initialValues={
+    selectedPet
+      ? {
+          ownerId: selectedPet.ownerId,
+          name: selectedPet.name,
+          species: selectedPet.species,
+          breed: selectedPet.breed,
+          speciesNote: selectedPet.speciesNote ?? "",
+          birthDate: selectedPet.birthDate,
+          sex: selectedPet.sex,
+          weightKg: selectedPet.weightKg,
+          allergies: selectedPet.allergies ?? "",
+          chronicConditions: selectedPet.chronicConditions ?? "",
+        }
+      : undefined
+  }
 
+  owners={owners}
+    selectedOwnerId={selectedOwnerId}
 
-            initialValues={
+  isLoading={loading}
 
-              selectedPet
+  mode={
+    selectedPet
+      ? "edit"
+      : "create"
+  }
 
-              ? {
+  onSubmit={handleSubmitPet}
 
-                  ownerId:
-                    selectedPet.ownerId,
+  onCancel={handleCloseModal}
 
-
-                  name:
-                    selectedPet.name,
-
-
-                  species:
-                    selectedPet.species,
-
-
-                  breed:
-                    selectedPet.breed,
-
-
-                  speciesNote:
-                    selectedPet.speciesNote ?? "",
-
-
-                  birthDate:
-                    selectedPet.birthDate,
-
-
-                  sex:
-                    selectedPet.sex,
-
-
-                  weightKg:
-                    selectedPet.weightKg,
-
-
-                  allergies:
-                    selectedPet.allergies ?? "",
-
-
-                  chronicConditions:
-                    selectedPet.chronicConditions ?? "",
-
-                }
-
-              : undefined
-
-            }
-
-
-
-            isLoading={loading}
-
-
-
-            mode={
-              selectedPet
-                ? "edit"
-                : "create"
-            }
-
-
-
-            onSubmit={handleSubmitPet}
-
-
-
-            onCancel={handleCloseModal}
-
-
-          />
+  onAddOwner={handleAddOwner}
+/>
 
 
         </Modal>
+        <Modal
+  open={isOwnerModalOpen}
+  title="Add New Owner"
+  onClose={() => setIsOwnerModalOpen(false)}
+>
+  <OwnerForm
+    onSubmit={handleSubmitOwner}
+    onCancel={() => setIsOwnerModalOpen(false)}
+  />
+</Modal>
 
 
 

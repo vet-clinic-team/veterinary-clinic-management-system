@@ -11,6 +11,7 @@ type PetVisitHistoryProps = {
   petId: number;
   refreshKey?: number;
   onAddAppointment: () => void;
+  onEditAppointment: (visit: Visit) => void;
 };
 
 const statusClasses: Record<
@@ -37,10 +38,9 @@ function PetVisitHistory({
   petId,
   refreshKey,
   onAddAppointment,
+  onEditAppointment,
 }: PetVisitHistoryProps) {
-  const [visits, setVisits] = useState<
-    Visit[]
-  >([]);
+  const [visits, setVisits] = useState<Visit[]>([]);
 
   const [loading, setLoading] =
     useState(true);
@@ -133,8 +133,9 @@ function PetVisitHistory({
                 className="
                   mb-3
                   flex
-                  items-center
+                  items-start
                   justify-between
+                  gap-4
                 "
               >
                 <p
@@ -157,18 +158,40 @@ function PetVisitHistory({
                   )}
                 </p>
 
-                <span
-                  className={`
-                    rounded-full
-                    px-3
-                    py-1
-                    text-xs
-                    font-medium
-                    ${statusClasses[visit.status]}
-                  `}
-                >
-                  {visit.status}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`
+                      rounded-full
+                      px-3
+                      py-1
+                      text-xs
+                      font-medium
+                      ${statusClasses[visit.status]}
+                    `}
+                  >
+                    {visit.status}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onEditAppointment(visit)
+                    }
+                    className="
+                      rounded-lg
+                      bg-blue-50
+                      px-3
+                      py-1.5
+                      text-xs
+                      font-medium
+                      text-blue-600
+                      transition
+                      hover:bg-blue-100
+                    "
+                  >
+                    Edit
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2">

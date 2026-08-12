@@ -6,7 +6,6 @@ import type { Owner } from "../../types/owner";
 type OwnerTableProps = {
   owners: Owner[];
   onEdit: (owner: Owner) => void;
-  onDelete: (owner: Owner) => void;
   onArchive: (owner: Owner) => void;
   onActivate: (owner: Owner) => void;
 };
@@ -14,7 +13,6 @@ type OwnerTableProps = {
 function OwnerTable({
   owners,
   onEdit,
-  onDelete,
   onArchive,
   onActivate,
 }: OwnerTableProps) {
@@ -74,7 +72,6 @@ function OwnerTable({
                   key={owner.id}
                   owner={owner}
                   onEdit={onEdit}
-                  onDelete={onDelete}
                   onArchive={onArchive}
                   onActivate={onActivate}
                 />

@@ -6,7 +6,6 @@ import OwnerStats from "../../components/owners/OwnerStats";
 import OwnerToolbar from "../../components/owners/OwnerToolbar";
 import OwnerTable from "../../components/owners/OwnerTable";
 import OwnerForm from "../../components/owners/OwnerForm";
-import DeleteOwnerDialog from "../../components/owners/DeleteOwnerDialog";
 
 import Modal from "../../components/ui/Modal";
 
@@ -15,7 +14,6 @@ import {
   getOwnerStats,
   createOwner,
   updateOwner,
-  deleteOwner as deleteOwnerApi,
   archiveOwner,
   activateOwner,
 } from "../../services/ownerService";
@@ -53,21 +51,17 @@ function OwnersPage() {
   const [selectedOwner, setSelectedOwner] =
     useState<Owner | null>(null);
 
-  const [deleteOwner, setDeleteOwner] =
-    useState<Owner | null>(null);
-
-  const [deleteError, setDeleteError] =
-    useState("");
-
   const [searchTerm, setSearchTerm] =
     useState("");
 
   const [sortOption, setSortOption] =
     useState("nameAsc");
 
-  const [page, setPage] = useState(0);
+  const [page, setPage] =
+    useState(0);
 
-  const [size] = useState(20);
+  const [size] =
+    useState(20);
 
   const [totalPages, setTotalPages] =
     useState(0);
@@ -118,7 +112,9 @@ function OwnersPage() {
     } catch (error) {
       console.error(error);
 
-      setError("Failed to load owners.");
+      setError(
+        "Failed to load owners."
+      );
     } finally {
       setLoading(false);
     }
@@ -126,7 +122,8 @@ function OwnersPage() {
 
   const fetchOwnerStats = async () => {
     try {
-      const data = await getOwnerStats();
+      const data =
+        await getOwnerStats();
 
       setStats(data);
     } catch (error) {
@@ -150,13 +147,15 @@ function OwnersPage() {
     fetchOwnerStats();
   }, []);
 
-  const activeOwners = owners.filter(
-    (owner) => !owner.archived
-  );
+  const activeOwners =
+    owners.filter(
+      (owner) => !owner.archived
+    );
 
-  const archivedOwners = owners.filter(
-    (owner) => owner.archived
-  );
+  const archivedOwners =
+    owners.filter(
+      (owner) => owner.archived
+    );
 
   const visibleOwners =
     activeTab === "active"
@@ -172,15 +171,16 @@ function OwnersPage() {
       "Phone",
     ];
 
-    const rows = visibleOwners.map(
-      (owner) => [
-        owner.id,
-        owner.firstName,
-        owner.lastName,
-        owner.email,
-        owner.phone,
-      ]
-    );
+    const rows =
+      visibleOwners.map(
+        (owner) => [
+          owner.id,
+          owner.firstName,
+          owner.lastName,
+          owner.email,
+          owner.phone,
+        ]
+      );
 
     const csvContent = [
       headers.join(","),
@@ -219,20 +219,20 @@ function OwnersPage() {
     setIsModalOpen(true);
   };
 
-  const handleEdit = (owner: Owner) => {
+  const handleEdit = (
+    owner: Owner
+  ) => {
     setSelectedOwner(owner);
     setIsModalOpen(true);
-  };
-
-  const handleDelete = (owner: Owner) => {
-    setDeleteOwner(owner);
   };
 
   const handleArchive = async (
     owner: Owner
   ) => {
     try {
-      await archiveOwner(owner.id);
+      await archiveOwner(
+        owner.id
+      );
 
       toast.success(
         "Owner archived successfully."
@@ -257,7 +257,9 @@ function OwnersPage() {
     owner: Owner
   ) => {
     try {
-      await activateOwner(owner.id);
+      await activateOwner(
+        owner.id
+      );
 
       toast.success(
         "Owner activated successfully."
@@ -317,44 +319,10 @@ function OwnersPage() {
     }
   };
 
-  const confirmDelete = async () => {
-    if (!deleteOwner) {
-      return;
-    }
-
-    try {
-      setDeleteError("");
-
-      await deleteOwnerApi(
-        deleteOwner.id
-      );
-
-      toast.success(
-        "Owner deleted successfully."
-      );
-
-      await fetchOwners();
-
-      setDeleteOwner(null);
-    } catch (error: any) {
-      console.error(
-        "Delete owner error:",
-        error
-      );
-
-      const message =
-        error?.response?.data?.message ??
-        "This owner cannot be deleted because they have registered pets.";
-
-      setDeleteError(message);
-
-      toast.error(message);
-    }
-  };
-
   return (
     <DashboardLayout>
       <div className="space-y-8">
+
         {/* Page Header */}
         <div>
           <h1
@@ -389,84 +357,80 @@ function OwnersPage() {
           <>
             <OwnerStats stats={stats} />
 
-{/* Owner Tabs */}
-<div
-  className="
-    flex
-    w-full
-    gap-1
-    rounded-xl
-    border
-    border-slate-200
-    bg-white
-    p-1
-    shadow-sm
-    sm:w-fit
-  "
->
-  <button
-    type="button"
-    onClick={() => {
-      setActiveTab("active");
-      setPage(0);
-    }}
-    className={`
-      rounded-xl
-      px-6
-      py-3
-      text-sm
-      font-medium
-      transition
-      ${
-        activeTab === "active"
-          ? "bg-blue-600 text-white shadow-sm"
-          : "text-slate-700 hover:bg-slate-50"
-      }
-    `}
-  >
-    Active Owners
-   
-  </button>
+            {/* Owner Tabs */}
+            <div
+              className="
+                flex
+                w-full
+                gap-1
+                rounded-xl
+                border
+                border-slate-200
+                bg-white
+                p-1
+                shadow-sm
+                sm:w-fit
+              "
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("active");
+                  setPage(0);
+                }}
+                className={`
+                  rounded-xl
+                  px-6
+                  py-3
+                  text-sm
+                  font-medium
+                  transition
+                  ${
+                    activeTab === "active"
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-slate-700 hover:bg-slate-50"
+                  }
+                `}
+              >
+                Active Owners
+              </button>
 
-  <button
-    type="button"
-    onClick={() => {
-      setActiveTab("archived");
-      setPage(0);
-    }}
-    className={`
-      rounded-xl
-      px-6
-      py-3
-      text-sm
-      font-medium
-      transition
-      ${
-        activeTab === "archived"
-          ? "bg-blue-600 text-white shadow-sm"
-          : "text-slate-700 hover:bg-slate-50"
-      }
-    `}
-  >
-    Archived Owners
-   
-  </button>
-</div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("archived");
+                  setPage(0);
+                }}
+                className={`
+                  rounded-xl
+                  px-6
+                  py-3
+                  text-sm
+                  font-medium
+                  transition
+                  ${
+                    activeTab === "archived"
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-slate-700 hover:bg-slate-50"
+                  }
+                `}
+              >
+                Archived Owners
+              </button>
+            </div>
 
-<OwnerToolbar
-  onAdd={handleAdd}
-  onSearch={(value) => {
-    setSearchTerm(value);
-    setPage(0);
-  }}
-  onSort={(value) => {
-    setSortOption(value);
-    setPage(0);
-  }}
-  onExport={handleExportOwners}
-/>
-
-          
+            <OwnerToolbar
+              onAdd={handleAdd}
+              onSearch={(value) => {
+                setSearchTerm(value);
+                setPage(0);
+              }}
+              onSort={(value) => {
+                setSortOption(value);
+                setPage(0);
+              }}
+              onExport={handleExportOwners}
+            />
 
             {visibleOwners.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
@@ -487,7 +451,6 @@ function OwnersPage() {
                 <OwnerTable
                   owners={visibleOwners}
                   onEdit={handleEdit}
-                  onDelete={handleDelete}
                   onArchive={handleArchive}
                   onActivate={handleActivate}
                 />
@@ -540,21 +503,6 @@ function OwnersPage() {
           />
         </Modal>
 
-        {/* Delete Owner Dialog */}
-        <DeleteOwnerDialog
-          open={!!deleteOwner}
-          ownerName={
-            deleteOwner
-              ? `${deleteOwner.firstName} ${deleteOwner.lastName}`
-              : ""
-          }
-          errorMessage={deleteError}
-          onClose={() => {
-            setDeleteOwner(null);
-            setDeleteError("");
-          }}
-          onConfirm={confirmDelete}
-        />
       </div>
     </DashboardLayout>
   );

@@ -1,10 +1,15 @@
 import type { OwnerDetail } from "../../types/owner";
+import { Pencil } from "lucide-react";
 
 type PetOwnerCardProps = {
   owner: OwnerDetail;
+  onEditOwner?: () => void;
 };
 
-function PetOwnerCard({ owner }: PetOwnerCardProps) {
+function PetOwnerCard({
+  owner,
+  onEditOwner,
+}: PetOwnerCardProps) {
   return (
     <div
       className="
@@ -16,10 +21,42 @@ function PetOwnerCard({ owner }: PetOwnerCardProps) {
         shadow-sm
       "
     >
-      <h2 className="text-xl font-semibold text-slate-900">
-        Owner Information
-      </h2>
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-slate-900">
+            Owner Information
+          </h2>
 
+          <p className="mt-1 text-sm text-slate-500">
+            Owner contact information
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onEditOwner}
+          className="
+            flex
+            items-center
+            gap-2
+            rounded-lg
+            bg-blue-600
+            px-4
+            py-2
+            text-sm
+            font-medium
+            text-white
+            transition
+            hover:bg-blue-700
+          "
+        >
+          <Pencil size={16} />
+          Edit Owner
+        </button>
+      </div>
+
+      {/* Owner Information */}
       <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
         <InfoItem
           label="Full Name"
@@ -28,17 +65,17 @@ function PetOwnerCard({ owner }: PetOwnerCardProps) {
 
         <InfoItem
           label="Phone"
-          value={owner.phone}
+          value={owner.phone || "—"}
         />
 
         <InfoItem
           label="Email"
-          value={owner.email}
+          value={owner.email || "—"}
         />
 
         <InfoItem
           label="Address"
-          value={owner.address}
+          value={owner.address || "—"}
         />
 
         <InfoItem
