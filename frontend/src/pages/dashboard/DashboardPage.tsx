@@ -4,7 +4,6 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 
 import DashboardStats from "../../components/dashboard/DashboardStats";
 import AppointmentStatistics from "../../components/dashboard/AppointmentStatistics";
-import QuickActions from "../../components/dashboard/QuickActions";
 import RevenueCategoryCard from "../../components/dashboard/RevenueCategoryCard";
 import AppointmentsByVetCard from "../../components/dashboard/AppointmentsByVetCard";
 import CumulativeAppointmentsCard from "../../components/dashboard/CumulativeAppointmentsCard";
@@ -15,7 +14,6 @@ import { getDashboardSummary } from "../../services/dashboardService";
 
 import type { DashboardSummary } from "../../types/dashboard";
 import MonthlyRevenueChart from "../../components/charts/MonthlyRevenueChart";
-
 
 function DashboardPage() {
   const [summary, setSummary] =
@@ -39,6 +37,7 @@ function DashboardPage() {
         setSummary(response);
       } catch (error) {
         console.error(error);
+
         setError(
           "Failed to load dashboard data."
         );
@@ -82,54 +81,43 @@ function DashboardPage() {
 
           <DashboardStats summary={summary} />
 
-          {/* Appointment Statistics + Quick Actions */}
+          {/* Appointment Statistics + Veterinarian Appointments */}
 
-          <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-12">
-            <div className="xl:col-span-8">
-              <AppointmentStatistics
-                summary={summary}
-              />
-            </div>
+          <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <AppointmentStatistics
+              summary={summary}
+            />
 
-            <div className="xl:col-span-4">
-              <QuickActions />
-            </div>
+            <AppointmentsByVetCard
+              summary={summary}
+            />
           </div>
 
-         {/* Revenue */}
+          {/* Revenue */}
 
-<div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-    <div className="mb-6">
-      <h2 className="text-xl font-semibold text-slate-900">
-        Monthly Revenue
-      </h2>
+          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-slate-900">
+                  Monthly Revenue
+                </h2>
 
-      <p className="mt-1 text-sm text-slate-500">
-        Revenue for the last 12 months
-      </p>
-    </div>
+                <p className="mt-1 text-sm text-slate-500">
+                  Revenue for the last 12 months
+                </p>
+              </div>
 
-    <div className="h-[320px]">
-      <MonthlyRevenueChart
-        data={summary.monthlyRevenue}
-      />
-    </div>
-  </div>
-  
+              <div className="h-[320px]">
+                <MonthlyRevenueChart
+                  data={summary.monthlyRevenue}
+                />
+              </div>
+            </div>
 
-  <RevenueCategoryCard
-    summary={summary}
-  />
-</div>
-
-{/* Veterinarian Appointments */}
-
-<div className="mt-8">
-  <AppointmentsByVetCard
-    summary={summary}
-  />
-</div>
+            <RevenueCategoryCard
+              summary={summary}
+            />
+          </div>
 
           {/* Cumulative Appointments */}
 
@@ -149,7 +137,9 @@ function DashboardPage() {
             </div>
 
             <div className="xl:col-span-4">
-              <AlertList summary={summary} />
+              <AlertList
+                summary={summary}
+              />
             </div>
           </div>
         </>
