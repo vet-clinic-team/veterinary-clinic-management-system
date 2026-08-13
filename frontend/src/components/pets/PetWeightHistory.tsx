@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import Modal from "../ui/Modal";
+
 import {
   getPetWeightRecords,
   addPetWeightRecord,
@@ -149,100 +151,183 @@ function PetWeightHistory({
   };
 
   return (
-    <div
-      className="
-        mt-6
-        rounded-2xl
-        border
-        border-slate-200
-        bg-white
-        p-6
-        shadow-sm
-      "
-    >
-      {/* Header */}
+    <>
       <div
         className="
-          mb-6
-          flex
-          flex-col
-          gap-4
-          sm:flex-row
-          sm:items-center
-          sm:justify-between
+          mt-6
+          rounded-2xl
+          border
+          border-slate-200
+          bg-white
+          p-6
+          shadow-sm
         "
       >
-        <h2
-          className="
-            text-xl
-            font-semibold
-            text-slate-900
-          "
-        >
-          Weight History
-        </h2>
-
-        <button
-          type="button"
-          onClick={openAddForm}
-          className="
-            inline-flex
-            items-center
-            justify-center
-            gap-2
-            rounded-xl
-            bg-blue-600
-            px-3
-            py-1.5
-            font-medium
-            text-white
-            transition
-            hover:bg-blue-700
-          "
-        >
-          <span className="text-lg">
-            +
-          </span>
-
-          Add Weight Record
-        </button>
-      </div>
-
-      {/* Add Weight Form */}
-      {isAddFormOpen && (
+        {/* Header */}
         <div
           className="
             mb-6
-            rounded-xl
-            border
-            border-slate-200
-            bg-slate-50
-            p-5
+            flex
+            flex-col
+            gap-4
+            sm:flex-row
+            sm:items-center
+            sm:justify-between
           "
         >
-          <h3
+          <h2
             className="
-              text-lg
+              text-xl
               font-semibold
               text-slate-900
             "
           >
-            Add Weight Record
-          </h3>
+            Weight History
+          </h2>
 
-          <p
+          <button
+            type="button"
+            onClick={openAddForm}
             className="
-              mt-1
-              text-sm
-              text-slate-500
+              inline-flex
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              bg-blue-600
+              px-3
+              py-1.5
+              font-medium
+              text-white
+              transition
+              hover:bg-blue-700
             "
           >
-            Enter the pet's weight measurement.
-          </p>
+            <span className="text-lg">
+              +
+            </span>
 
+            Add Weight Record
+          </button>
+        </div>
+
+        {/* Loading */}
+        {loading ? (
+          <p className="text-slate-500">
+            Loading...
+          </p>
+        ) : records.length === 0 ? (
+          <p className="text-slate-500">
+            No weight records found.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {records.map(
+              (record, index) => (
+                <div
+                  key={record.id}
+                  className="
+                    flex
+                    items-center
+                    justify-between
+                    rounded-xl
+                    border
+                    border-slate-200
+                    p-5
+                  "
+                >
+                  <div>
+                    <div
+                      className="
+                        flex
+                        items-center
+                        gap-3
+                      "
+                    >
+                      <p
+                        className="
+                          text-xl
+                          font-semibold
+                          text-slate-900
+                        "
+                      >
+                        {record.weightKg} kg
+                      </p>
+
+                      {index ===
+                        records.length - 1 && (
+                        <span
+                          className="
+                            rounded-full
+                            bg-emerald-100
+                            px-3
+                            py-1
+                            text-xs
+                            font-medium
+                            text-emerald-700
+                          "
+                        >
+                          Latest
+                        </span>
+                      )}
+                    </div>
+
+                    <p
+                      className="
+                        mt-1
+                        text-sm
+                        text-slate-500
+                      "
+                    >
+                      {new Date(
+                        record.recordedAt
+                      ).toLocaleString(
+                        "en-GB",
+                        {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }
+                      )}
+                    </p>
+                  </div>
+
+                  <p
+                    className="
+                      max-w-xs
+                      text-right
+                      text-sm
+                      text-slate-500
+                    "
+                  >
+                    {record.note || "-"}
+                  </p>
+                </div>
+              )
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Add Weight Record Modal */}
+      <Modal
+        open={isAddFormOpen}
+        title="Add Weight Record"
+        onClose={closeAddForm}
+      >
+        <div className="space-y-6">
+          {/* Description */}
+          <div>
+            <p className="text-sm text-slate-500">
+              Enter the pet's weight measurement.
+            </p>
+          </div>
+
+          {/* Form */}
           <div
             className="
-              mt-5
               grid
               grid-cols-1
               gap-4
@@ -365,13 +450,15 @@ function PetWeightHistory({
             </div>
           </div>
 
-          {/* Form Actions */}
+          {/* Actions */}
           <div
             className="
-              mt-5
               flex
               justify-end
               gap-3
+              border-t
+              border-slate-200
+              pt-5
             "
           >
             <button
@@ -418,107 +505,8 @@ function PetWeightHistory({
             </button>
           </div>
         </div>
-      )}
-
-      {/* Loading */}
-      {loading ? (
-        <p className="text-slate-500">
-          Loading...
-        </p>
-      ) : records.length === 0 ? (
-        <p className="text-slate-500">
-          No weight records found.
-        </p>
-      ) : (
-        <div className="space-y-4">
-          {records.map(
-            (record, index) => (
-              <div
-                key={record.id}
-                className="
-                  flex
-                  items-center
-                  justify-between
-                  rounded-xl
-                  border
-                  border-slate-200
-                  p-5
-                "
-              >
-                <div>
-                  <div
-                    className="
-                      flex
-                      items-center
-                      gap-3
-                    "
-                  >
-                    <p
-                      className="
-                        text-xl
-                        font-semibold
-                        text-slate-900
-                      "
-                    >
-                      {record.weightKg} kg
-                    </p>
-
-                    {index ===
-                      records.length - 1 && (
-                      <span
-                        className="
-                          rounded-full
-                          bg-emerald-100
-                          px-3
-                          py-1
-                          text-xs
-                          font-medium
-                          text-emerald-700
-                        "
-                      >
-                        Latest
-                      </span>
-                    )}
-                  </div>
-
-                  <p
-                    className="
-                      mt-1
-                      text-sm
-                      text-slate-500
-                    "
-                  >
-                    {new Date(
-                      record.recordedAt
-                    ).toLocaleString(
-                      "en-GB",
-                      {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }
-                    )}
-                  </p>
-                </div>
-
-                <p
-                  className="
-                    max-w-xs
-                    text-right
-                    text-sm
-                    text-slate-500
-                  "
-                >
-                  {record.note || "-"}
-                </p>
-              </div>
-            )
-          )}
-        </div>
-      )}
-    </div>
+      </Modal>
+    </>
   );
 }
 
