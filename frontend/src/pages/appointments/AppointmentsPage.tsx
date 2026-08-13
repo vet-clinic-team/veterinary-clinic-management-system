@@ -379,20 +379,14 @@ toast.success("Appointment status updated successfully.");
     await fetchVisits();
 
   } catch (error: any) {
-    console.error(error);
+  console.error("Failed to create follow-up visit:", error);
 
-    if (error.response?.status === 409) {
-      toast.error(
-        "A follow-up visit has already been created for this appointment."
-      );
-    } else {
-      const message =
-        error?.response?.data?.message ??
-        "Failed to create follow-up visit.";
+  const message =
+    error?.response?.data?.message ??
+    "Failed to create follow-up visit.";
 
-      toast.error(message);
-    }
-  }
+  toast.error(message);
+}
 };
 const handleCalendarUpdate = async (
   appointment: Visit,
