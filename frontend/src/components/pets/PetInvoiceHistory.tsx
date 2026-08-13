@@ -321,8 +321,8 @@ function PetInvoiceHistory({
               gap-2
               rounded-xl
               bg-blue-600
-              px-5
-              py-3
+              px-3
+              py-1.5
               font-medium
               text-white
               transition
@@ -629,7 +629,7 @@ function PetInvoiceHistory({
                   border
                   border-slate-300
                   px-3
-                  py-2
+                  py-1.5
                   text-sm
                   font-medium
                   text-slate-700
