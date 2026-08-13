@@ -109,3 +109,20 @@ export const createFollowUpVisit = async (
 
   return response.data;
 };
+export const getPetVisits = async (
+  petId: number,
+  params?: {
+    page?: number;
+    size?: number;
+    sort?: string;
+  }
+) => {
+  const response = await api.get<VisitPageResponse>(
+    `/pets/${petId}/visits`,
+    {
+      params,
+    }
+  );
+
+  return response.data;
+};

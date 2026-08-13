@@ -10,6 +10,7 @@ import PetOwnerCard from "../../components/pets/PetOwnerCard";
 import PetWeightHistory from "../../components/pets/PetWeightHistory";
 import PetVisitHistory from "../../components/pets/PetVisitHistory";
 import PetVaccinationHistory from "../../components/pets/PetVaccinationHistory";
+import PetInvoiceHistory from "../../components/pets/PetInvoiceHistory";
 
 import Modal from "../../components/ui/Modal";
 import OwnerForm from "../../components/owners/OwnerForm";
@@ -561,8 +562,10 @@ function PetDetailPage() {
   }}
 />
 
-              {/* Invoice History */}
-              {/* Sonraki aşamada eklenecek. */}
+             {/* Invoice History */}
+<PetInvoiceHistory
+  petId={pet.id}
+/>
 
               {/* Weight History */}
               <PetWeightHistory
