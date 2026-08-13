@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -38,14 +39,17 @@ public class VisitReminderScheduler {
         List<Visit> visits = visitRepository.findByStatusAndScheduledAtBetweenAndReminderSentAtIsNull(
                 VisitStatus.SCHEDULED, windowStart, windowEnd);
 
+        List<Visit> remindedVisits = new ArrayList<>();
         for (Visit visit : visits) {
-            visitReminderNotifier.notifyUpcomingVisit(visit);
-            visit.markReminderSent();
+            if (visitReminderNotifier.notifyUpcomingVisit(visit)) {
+                visit.markReminderSent();
+                remindedVisits.add(visit);
+            }
         }
 
-        if (!visits.isEmpty()) {
-            visitRepository.saveAll(visits);
-            log.info("Sent {} visit reminder(s) for {}", visits.size(), tomorrow);
+        if (!remindedVisits.isEmpty()) {
+            visitRepository.saveAll(remindedVisits);
+            log.info("Sent {} visit reminder(s) for {}", remindedVisits.size(), tomorrow);
         }
     }
 }

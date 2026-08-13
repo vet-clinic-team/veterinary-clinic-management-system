@@ -18,6 +18,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -40,9 +41,10 @@ public class VisitService {
         this.vetRepository = vetRepository;
     }
 
+    @Transactional
     public VisitResponse create(VisitRequest request) {
         Pet pet = findPetOrThrow(request.petId());
-        Vet vet = findVetOrThrow(request.vetId());
+        Vet vet = findVetForUpdateOrThrow(request.vetId());
         checkNoOverlap(request.vetId(), request.scheduledAt(), null);
 
         Visit visit = new Visit(pet, vet, request.scheduledAt(), request.chiefComplaint());
@@ -99,10 +101,11 @@ public class VisitService {
         return spec;
     }
 
+    @Transactional
     public VisitResponse update(Long id, VisitRequest request) {
         Visit visit = findVisitOrThrow(id);
         Pet pet = findPetOrThrow(request.petId());
-        Vet vet = findVetOrThrow(request.vetId());
+        Vet vet = findVetForUpdateOrThrow(request.vetId());
         checkNoOverlap(request.vetId(), request.scheduledAt(), id);
 
         visit.update(pet, vet, request.scheduledAt(), request.chiefComplaint());
@@ -110,8 +113,15 @@ public class VisitService {
         return VisitResponse.from(visitRepository.save(visit));
     }
 
+    @Transactional
     public VisitResponse updateStatus(Long id, VisitStatusUpdateRequest request) {
         Visit visit = findVisitOrThrow(id);
+
+        if (visit.getStatus() == VisitStatus.CANCELLED && request.status() != VisitStatus.CANCELLED) {
+            findVetForUpdateOrThrow(visit.getVet().getId());
+            checkNoOverlap(visit.getVet().getId(), visit.getScheduledAt(), id);
+        }
+
         visit.updateStatus(request.status());
 
         return VisitResponse.from(visitRepository.save(visit));
@@ -128,6 +138,7 @@ public class VisitService {
         return VisitResponse.from(visitRepository.save(visit));
     }
 
+    @Transactional
     public VisitResponse createFollowUp(Long id, Role requesterRole) {
         if (requesterRole == Role.RECEPTIONIST) {
             throw new AccessDeniedException("RECEPTIONIST cannot create follow-up visits");
@@ -142,6 +153,7 @@ public class VisitService {
         }
 
         LocalDateTime scheduledAt = visit.getFollowUpDate().atTime(FOLLOW_UP_DEFAULT_HOUR, 0);
+        findVetForUpdateOrThrow(visit.getVet().getId());
         checkNoOverlap(visit.getVet().getId(), scheduledAt, null);
 
         Visit followUpVisit = new Visit(visit.getPet(), visit.getVet(), scheduledAt, FOLLOW_UP_CHIEF_COMPLAINT);
@@ -174,8 +186,8 @@ public class VisitService {
                 .orElseThrow(() -> new ResourceNotFoundException("Pet not found with id " + petId));
     }
 
-    private Vet findVetOrThrow(Long vetId) {
-        return vetRepository.findById(vetId)
+    private Vet findVetForUpdateOrThrow(Long vetId) {
+        return vetRepository.findByIdForUpdate(vetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Vet not found with id " + vetId));
     }
 }

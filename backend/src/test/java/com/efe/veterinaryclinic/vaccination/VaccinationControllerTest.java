@@ -427,14 +427,28 @@ class VaccinationControllerTest {
     }
 
     @Test
-    void deleteVaccinationByVetIsForbidden() throws Exception {
+    void vetDeletesVaccinationThenGetByIdReturnsNotFound() throws Exception {
         String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
         String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
-        long petId = createPet(receptionistToken, "vaccination-delete-forbidden@example.com", "Findik");
+        long petId = createPet(receptionistToken, "vaccination-delete-by-vet@example.com", "Findik");
         long vaccinationId = createVaccination(adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-F", "Dr. Kaya");
 
         mockMvc.perform(delete("/api/vaccinations/" + vaccinationId).header("Authorization", "Bearer " + vetToken))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/vaccinations/" + vaccinationId).header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteVaccinationByReceptionistIsForbidden() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "vaccination-delete-forbidden@example.com", "Tekir");
+        long vaccinationId = createVaccination(adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-F2", "Dr. Kaya");
+
+        mockMvc.perform(delete("/api/vaccinations/" + vaccinationId).header("Authorization", "Bearer " + receptionistToken))
                 .andExpect(status().isForbidden());
     }
 

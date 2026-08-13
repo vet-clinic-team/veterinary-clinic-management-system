@@ -161,7 +161,7 @@ class DashboardServiceTest {
     }
 
     @Test
-    void monthlyRevenueIncludesCurrentMonthTotalFromIssuedInvoices() throws Exception {
+    void monthlyRevenueIncludesCurrentMonthSubtotalFromIssuedInvoices() throws Exception {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         String currentMonthKey = YearMonth.now().format(MONTH_FORMAT);
         BigDecimal baseline = revenueForMonth(dashboardService.getSummary(), currentMonthKey);
@@ -181,8 +181,8 @@ class DashboardServiceTest {
         DashboardSummaryResponse summary = dashboardService.getSummary();
         assertThat(summary.monthlyRevenue()).hasSize(12);
         assertThat(summary.monthlyRevenue().get(11).month()).isEqualTo(currentMonthKey);
-        // subtotal 500.00 + 18% VAT = 590.00 total
-        assertThat(revenueForMonth(summary, currentMonthKey)).isEqualByComparingTo(baseline.add(new BigDecimal("590.00")));
+        // monthlyRevenue is VAT-exclusive (subtotal), matching revenueByCategory's basis
+        assertThat(revenueForMonth(summary, currentMonthKey)).isEqualByComparingTo(baseline.add(new BigDecimal("500.00")));
     }
 
     @Test

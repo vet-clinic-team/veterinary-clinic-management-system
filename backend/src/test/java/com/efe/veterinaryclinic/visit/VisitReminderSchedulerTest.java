@@ -7,12 +7,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -43,8 +46,13 @@ class VisitReminderSchedulerTest {
     @Autowired
     private VisitReminderScheduler visitReminderScheduler;
 
+    @MockitoBean
+    private VisitReminderNotifier visitReminderNotifier;
+
     @Test
-    void schedulerMarksTomorrowsScheduledVisitAsReminded() throws Exception {
+    void schedulerMarksTomorrowsScheduledVisitAsRemindedWhenEmailIsActuallySent() throws Exception {
+        when(visitReminderNotifier.notifyUpcomingVisit(any())).thenReturn(true);
+
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "reminder-tomorrow@example.com", "Tarcin");
         long vetId = createVet(receptionistToken, "VET-LIC-REMINDER-001"); // gitleaks:allow
@@ -56,6 +64,21 @@ class VisitReminderSchedulerTest {
         visitReminderScheduler.sendTomorrowReminders();
 
         getVisit(receptionistToken, visitId).andExpect(jsonPath("$.reminderSentAt").exists());
+    }
+
+    @Test
+    void schedulerDoesNotMarkVisitAsRemindedWhenEmailWasNotActuallySent() throws Exception {
+        when(visitReminderNotifier.notifyUpcomingVisit(any())).thenReturn(false);
+
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "reminder-not-sent@example.com", "Findik");
+        long vetId = createVet(receptionistToken, "VET-LIC-REMINDER-005"); // gitleaks:allow
+        LocalDateTime scheduledAt = LocalDateTime.now().plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0);
+        long visitId = createVisit(receptionistToken, petId, vetId, scheduledAt);
+
+        visitReminderScheduler.sendTomorrowReminders();
+
+        getVisit(receptionistToken, visitId).andExpect(jsonPath("$.reminderSentAt").doesNotExist());
     }
 
     @Test
@@ -92,6 +115,8 @@ class VisitReminderSchedulerTest {
 
     @Test
     void runningSchedulerTwiceIsIdempotent() throws Exception {
+        when(visitReminderNotifier.notifyUpcomingVisit(any())).thenReturn(true);
+
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "reminder-idempotent@example.com", "Zeytin");
         long vetId = createVet(receptionistToken, "VET-LIC-REMINDER-004"); // gitleaks:allow

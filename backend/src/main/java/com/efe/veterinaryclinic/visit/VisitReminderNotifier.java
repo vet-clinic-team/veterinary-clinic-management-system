@@ -33,21 +33,21 @@ public class VisitReminderNotifier {
         this.enabled = enabled;
     }
 
-    public void notifyUpcomingVisit(Visit visit) {
+    public boolean notifyUpcomingVisit(Visit visit) {
         if (!enabled) {
-            return;
+            return false;
         }
 
         String recipient = visit.getPet().getOwner().getEmail();
         if (recipient == null || recipient.isBlank()) {
-            return;
+            return false;
         }
 
         JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
         if (mailSender == null) {
             log.warn("Visit reminders are enabled but no JavaMailSender bean is configured " +
                     "(spring.mail.host missing) — skipping reminder for visit {}", visit.getId());
-            return;
+            return false;
         }
 
         try {
@@ -61,8 +61,10 @@ public class VisitReminderNotifier {
                             + "Please contact the clinic if you need to reschedule.\n\n"
                             + "Thank you.");
             mailSender.send(mailMessage);
+            return true;
         } catch (MailException ex) {
             log.warn("Failed to send visit reminder email for visit {}", visit.getId(), ex);
+            return false;
         }
     }
 }

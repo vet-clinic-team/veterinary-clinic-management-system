@@ -94,7 +94,7 @@ public class DashboardService {
         Map<String, BigDecimal> revenueByMonth = invoiceRepository.findByIssuedAtGreaterThanEqual(windowStart).stream()
                 .collect(Collectors.groupingBy(
                         invoice -> YearMonth.from(invoice.getIssuedAt()).format(MONTH_FORMATTER),
-                        Collectors.reducing(BigDecimal.ZERO, Invoice::getTotal, BigDecimal::add)));
+                        Collectors.reducing(BigDecimal.ZERO, Invoice::getSubtotal, BigDecimal::add)));
 
         List<MonthlyRevenueEntry> result = new ArrayList<>();
         for (int i = REVENUE_MONTHS_WINDOW - 1; i >= 0; i--) {
