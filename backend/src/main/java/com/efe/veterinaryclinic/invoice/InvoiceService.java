@@ -7,6 +7,8 @@ import com.efe.veterinaryclinic.invoice.dto.InvoiceItemRequest;
 import com.efe.veterinaryclinic.invoice.dto.InvoiceRequest;
 import com.efe.veterinaryclinic.invoice.dto.InvoiceResponse;
 import com.efe.veterinaryclinic.invoice.dto.InvoiceStatsResponse;
+import com.efe.veterinaryclinic.pet.Pet;
+import com.efe.veterinaryclinic.pet.PetRepository;
 import com.efe.veterinaryclinic.visit.Visit;
 import com.efe.veterinaryclinic.visit.VisitRepository;
 import org.springframework.data.domain.Pageable;
@@ -26,10 +28,13 @@ public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
     private final VisitRepository visitRepository;
+    private final PetRepository petRepository;
 
-    public InvoiceService(InvoiceRepository invoiceRepository, VisitRepository visitRepository) {
+    public InvoiceService(InvoiceRepository invoiceRepository, VisitRepository visitRepository,
+                           PetRepository petRepository) {
         this.invoiceRepository = invoiceRepository;
         this.visitRepository = visitRepository;
+        this.petRepository = petRepository;
     }
 
     public InvoiceResponse create(InvoiceRequest request) {
@@ -75,6 +80,12 @@ public class InvoiceService {
         return invoiceRepository.findByVisit_Pet_Owner_IdOrderByIssuedAtDesc(ownerId).stream()
                 .map(InvoiceResponse::from)
                 .toList();
+    }
+
+    public PageResponse<InvoiceResponse> listByPet(Long petId, Pageable pageable) {
+        findPetOrThrow(petId);
+
+        return PageResponse.from(invoiceRepository.findByVisit_Pet_Id(petId, pageable).map(InvoiceResponse::from));
     }
 
     public InvoiceStatsResponse getStats() {
@@ -129,5 +140,10 @@ public class InvoiceService {
     private Visit findVisitOrThrow(Long visitId) {
         return visitRepository.findById(visitId)
                 .orElseThrow(() -> new ResourceNotFoundException("Visit not found with id " + visitId));
+    }
+
+    private Pet findPetOrThrow(Long petId) {
+        return petRepository.findById(petId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pet not found with id " + petId));
     }
 }

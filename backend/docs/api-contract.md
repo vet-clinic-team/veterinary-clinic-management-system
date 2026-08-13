@@ -253,9 +253,12 @@ Note: soft-deletable resources (e.g. `Pet`) have no "real delete" endpoint at al
 | GET | `/api/pets/{id}/vaccinations` | ADMIN, VET, RECEPTIONIST | Pet's vaccination history |
 | GET | `/api/pets/{id}/weight-records` | ADMIN, VET, RECEPTIONIST | Pet's weight history |
 | POST | `/api/pets/{id}/weight-records` | ADMIN, VET, RECEPTIONIST | Add a weight record (weighing can happen at check-in) |
+| GET | `/api/pets/{id}/invoices` | ADMIN, VET, RECEPTIONIST | Pet's invoice history |
 | GET | `/api/pets/stats` | ADMIN, VET, RECEPTIONIST | Pet stat-card totals over the full dataset |
 
 > `GET /api/pets/{id}/weight-records` intentionally returns a plain array, not `PageResponse` — a single pet's weight history is a small, bounded list, so pagination metadata would add no value. Sort is fixed ascending by `recordedAt`.
+
+> `GET /api/pets/{id}/invoices` returns the standard `PageResponse<InvoiceResponse>` shape, same convention as `/visits` and `/vaccinations` (see `decisions.md` entry 45).
 
 **POST /api/pets — request**
 ```json

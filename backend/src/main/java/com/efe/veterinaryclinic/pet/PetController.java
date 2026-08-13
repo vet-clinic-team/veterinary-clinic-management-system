@@ -1,6 +1,8 @@
 package com.efe.veterinaryclinic.pet;
 
 import com.efe.veterinaryclinic.common.dto.PageResponse;
+import com.efe.veterinaryclinic.invoice.InvoiceService;
+import com.efe.veterinaryclinic.invoice.dto.InvoiceResponse;
 import com.efe.veterinaryclinic.pet.dto.PetRequest;
 import com.efe.veterinaryclinic.pet.dto.PetResponse;
 import com.efe.veterinaryclinic.pet.dto.PetStatsResponse;
@@ -30,7 +32,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/pets")
-@Tag(name = "Pets", description = "Pet records and their visit/vaccination/weight history")
+@Tag(name = "Pets", description = "Pet records and their visit/vaccination/weight/invoice history")
 public class PetController {
 
 
@@ -38,13 +40,15 @@ public class PetController {
     private final VisitService visitService;
     private final VaccinationService vaccinationService;
     private final PetWeightRecordService petWeightRecordService;
+    private final InvoiceService invoiceService;
 
     public PetController(PetService petService, VisitService visitService, VaccinationService vaccinationService,
-                          PetWeightRecordService petWeightRecordService) {
+                          PetWeightRecordService petWeightRecordService, InvoiceService invoiceService) {
         this.petService = petService;
         this.visitService = visitService;
         this.vaccinationService = vaccinationService;
         this.petWeightRecordService = petWeightRecordService;
+        this.invoiceService = invoiceService;
     }
 
     @PostMapping
@@ -104,6 +108,12 @@ public class PetController {
     @Operation(summary = "Get a pet's vaccination history", description = "ADMIN, VET, RECEPTIONIST.")
     public ResponseEntity<PageResponse<VaccinationResponse>> vaccinations(@PathVariable Long id, Pageable pageable) {
         return ResponseEntity.ok(vaccinationService.listByPet(id, pageable));
+    }
+
+    @GetMapping("/{id}/invoices")
+    @Operation(summary = "Get a pet's invoice history", description = "ADMIN, VET, RECEPTIONIST.")
+    public ResponseEntity<PageResponse<InvoiceResponse>> invoices(@PathVariable Long id, Pageable pageable) {
+        return ResponseEntity.ok(invoiceService.listByPet(id, pageable));
     }
 
     @PostMapping("/{id}/weight-records")

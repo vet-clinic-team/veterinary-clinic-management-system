@@ -166,6 +166,7 @@ All major listing endpoints support: search (where relevant), filtering (where r
 - Profile data.
 - Visit history.
 - Vaccination history.
+- Invoice history.
 - Weight records for the last 12 months.
 - Documents/photo upload: documented as a later phase, not implemented now.
 - Conditional species/breed behavior: if species is CAT or DOG, breed applies; otherwise breed is not required and `speciesNote` is used.

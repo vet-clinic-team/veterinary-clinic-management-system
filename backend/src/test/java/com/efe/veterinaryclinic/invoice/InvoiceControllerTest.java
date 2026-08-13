@@ -193,6 +193,34 @@ class InvoiceControllerTest {
     }
 
     @Test
+    void petInvoiceHistoryReturnsOnlyThatPetsInvoices() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petIdA = createPet(receptionistToken, "invoice-pet-history-a@example.com", "Duman");
+        long petIdB = createPet(receptionistToken, "invoice-pet-history-b@example.com", "Kayra");
+        long vetIdA = createVet(receptionistToken, "VET-LIC-INV-PET-001");
+        long vetIdB = createVet(receptionistToken, "VET-LIC-INV-PET-002");
+        long visitIdA = createVisitForPetAndVet(receptionistToken, petIdA, vetIdA);
+        createVisitForPetAndVet(receptionistToken, petIdB, vetIdB);
+        long invoiceIdA = createInvoiceForVisit(receptionistToken, visitIdA);
+
+        mockMvc.perform(get("/api/pets/" + petIdA + "/invoices")
+                        .header("Authorization", "Bearer " + receptionistToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(invoiceIdA))
+                .andExpect(jsonPath("$.content[0].visitId").value(visitIdA));
+    }
+
+    @Test
+    void petInvoiceHistoryForUnknownPetReturnsNotFound() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+
+        mockMvc.perform(get("/api/pets/999999/invoices")
+                        .header("Authorization", "Bearer " + receptionistToken))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void getUnknownInvoiceReturnsNotFound() throws Exception {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
 
@@ -332,6 +360,10 @@ class InvoiceControllerTest {
     private long createInvoice(String token, String ownerEmail, String petName, String licenseNo) throws Exception {
         long visitId = createVisit(token, ownerEmail, petName, licenseNo);
 
+        return createInvoiceForVisit(token, visitId);
+    }
+
+    private long createInvoiceForVisit(String token, long visitId) throws Exception {
         String createBody = objectMapper.writeValueAsString(new InvoicePayload(visitId, List.of(
                 new InvoiceItemPayload("Consultation", "CONSULTATION", 1, new BigDecimal("500.00")))));
 
@@ -349,6 +381,10 @@ class InvoiceControllerTest {
         long petId = createPet(token, ownerEmail, petName);
         long vetId = createVet(token, licenseNo);
 
+        return createVisitForPetAndVet(token, petId, vetId);
+    }
+
+    private long createVisitForPetAndVet(String token, long petId, long vetId) throws Exception {
         String createBody = objectMapper.writeValueAsString(
                 new VisitPayload(petId, vetId, "2026-07-10T14:30:00", "Annual checkup"));
 
