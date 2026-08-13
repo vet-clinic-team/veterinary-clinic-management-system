@@ -1,5 +1,7 @@
 package com.efe.veterinaryclinic.invoice;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
@@ -18,4 +20,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpec
             InvoiceStatus status, Long vetId, LocalDateTime from);
 
     List<Invoice> findByVisit_Pet_Owner_IdOrderByIssuedAtDesc(Long ownerId);
+
+    Page<Invoice> findByVisit_Pet_Id(Long petId, Pageable pageable);
 }
