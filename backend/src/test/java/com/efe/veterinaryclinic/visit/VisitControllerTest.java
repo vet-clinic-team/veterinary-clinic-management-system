@@ -743,6 +743,23 @@ class VisitControllerTest {
     }
 
     @Test
+    void createVisitExactlyFifteenMinutesFromExistingVisitForSameVetReturnsConflict() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "visit-overlap-boundary@example.com", "Boundary");
+        long vetId = createVet(receptionistToken, "VET-LIC-VISIT-039");
+        createVisit(receptionistToken, petId, vetId, "2026-11-10T10:00:00", "First appointment");
+
+        String boundaryBody = objectMapper.writeValueAsString(
+                new VisitPayload(petId, vetId, "2026-11-10T10:15:00", "Exactly fifteen minutes later"));
+
+        mockMvc.perform(post("/api/visits")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(boundaryBody))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
     void createVisitOutsideFifteenMinuteWindowForSameVetSucceeds() throws Exception {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "visit-no-overlap@example.com", "Rocky");

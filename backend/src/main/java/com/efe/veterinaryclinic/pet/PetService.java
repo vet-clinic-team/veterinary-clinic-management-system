@@ -15,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -37,6 +38,7 @@ public class  PetService {
         this.visitRepository = visitRepository;
     }
 
+    @Transactional
     public PetResponse create(PetRequest request) {
         validateSpeciesBreedRule(request.species(), request.speciesNote());
         Owner owner = findOwnerOrThrow(request.ownerId());
@@ -77,6 +79,7 @@ public class  PetService {
         return PetResponse.from(pet, isInactive(pet));
     }
 
+    @Transactional
     public PetResponse update(Long id, PetRequest request) {
         validateSpeciesBreedRule(request.species(), request.speciesNote());
         Pet pet = findPetOrThrow(id);
@@ -98,6 +101,7 @@ public class  PetService {
         return PetResponse.from(saved, isInactive(saved));
     }
 
+    @Transactional
     public PetResponse activate(Long id) {
         Pet pet = findPetOrThrow(id);
         pet.activate();
