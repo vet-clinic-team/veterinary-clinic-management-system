@@ -22,8 +22,21 @@ function formatDate(date: string) {
 function AlertList({
   summary,
 }: AlertListProps) {
+  const today = new Date();
+
+const todayString = [
+  today.getFullYear(),
+  String(today.getMonth() + 1).padStart(2, "0"),
+  String(today.getDate()).padStart(2, "0"),
+].join("-");
+
+const upcomingVaccinations =
+  summary.upcomingVaccinationAlerts.filter(
+    (alert) => alert.nextDueDate >= todayString
+  );
+
   const hasAlerts =
-    summary.upcomingVaccinationAlerts.length > 0 ||
+    upcomingVaccinations.length > 0 ||
     summary.overdueFollowUpAlerts.length > 0;
 
   return (
@@ -42,7 +55,7 @@ function AlertList({
         </div>
 
         <div className="flex flex-1 flex-col gap-3">
-          {summary.upcomingVaccinationAlerts.map((alert) => (
+          {upcomingVaccinations.map((alert) => (
             <div
               key={`vaccination-${alert.petId}`}
               className="flex items-start gap-4 rounded-2xl border border-transparent p-3 transition-all duration-200 hover:border-green-200 hover:bg-green-50/40"

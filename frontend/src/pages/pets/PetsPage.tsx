@@ -13,7 +13,6 @@ import DeletePetDialog from "../../components/pets/DeletePetDialog";
 import OwnerForm from "../../components/owners/OwnerForm";
 import toast from "react-hot-toast";
 
-
 import {
   getPets,
   getPetStats,
@@ -38,477 +37,507 @@ import type {
   Owner,
 } from "../../types/owner";
 
-
-
 function PetsPage() {
-
-
   const [pets, setPets] =
     useState<Pet[]>([]);
-    const [page, setPage] = useState(0);
-    const [stats, setStats] =
-  useState<PetStatsResponse>({
-    totalPets: 0,
-    dogs: 0,
-    cats: 0,
-    newThisMonth: 0,
-  });
 
-const [size] = useState(20);
+  const [page, setPage] =
+    useState(0);
 
-const [totalPages, setTotalPages] = useState(0);
-    const [owners, setOwners] =
-  useState<Owner[]>([]);
+  const [stats, setStats] =
+    useState<PetStatsResponse>({
+      totalPets: 0,
+      dogs: 0,
+      cats: 0,
+      newThisMonth: 0,
+    });
 
+  const [size] =
+    useState(20);
 
+  const [totalPages, setTotalPages] =
+    useState(0);
+
+  const [owners, setOwners] =
+    useState<Owner[]>([]);
 
   const [loading, setLoading] =
     useState(true);
 
-
-
   const [error, setError] =
-  useState("");
-  
-
+    useState("");
 
   const [search, setSearch] =
     useState("");
-    const [debouncedSearch, setDebouncedSearch] =
-  
+
+  const [debouncedSearch, setDebouncedSearch] =
     useState("");
-
-
-
 
   const [species, setSpecies] =
     useState("");
 
-
-
   const [owner, setOwner] =
     useState("");
-
-
 
   const [sort, setSort] =
     useState("name-asc");
 
-
-
   const [isModalOpen, setIsModalOpen] =
     useState(false);
 
-
-
   const [selectedPet, setSelectedPet] =
     useState<Pet | null>(null);
-    const [isOwnerModalOpen, setIsOwnerModalOpen] =
-  useState(false);
+
+  const [isOwnerModalOpen, setIsOwnerModalOpen] =
+    useState(false);
+
   const [selectedOwnerId, setSelectedOwnerId] =
-  useState<number | undefined>(undefined);
-
-
+    useState<number | undefined>(undefined);
 
   const [petToArchive, setPetToArchive] =
     useState<Pet | null>(null);
 
-
-
   const [showArchived, setShowArchived] =
     useState(false);
 
-
-
-
   const fetchPets = async () => {
-
-
     try {
-
-
       if (pets.length === 0) {
-  setLoading(true);
-}
+        setLoading(true);
+      }
 
       setError("");
 
+      let sortOption: string | undefined;
 
+      switch (sort) {
+        case "name-asc":
+          sortOption = "name,asc";
+          break;
 
-      let sortOption;
+        case "name-desc":
+          sortOption = "name,desc";
+          break;
 
-switch (sort) {
-  case "name-asc":
-    sortOption = "name,asc";
-    break;
+        case "newest":
+          sortOption = "createdAt,desc";
+          break;
 
-  case "name-desc":
-    sortOption = "name,desc";
-    break;
+        case "oldest":
+          sortOption = "createdAt,asc";
+          break;
 
-  case "newest":
-    sortOption = "createdAt,desc";
-    break;
+        default:
+          sortOption = undefined;
+      }
 
-  case "oldest":
-    sortOption = "createdAt,asc";
-    break;
-}
+      /*
+       * Backend search desteklemediği için
+       * search parametresi backend'e gönderilmiyor.
+       *
+       * Search varsa backend'deki filtrelere uyan
+       * tüm pet sayfaları çekiliyor ve frontend'de
+       * search uygulanıyor.
+       */
+      if (debouncedSearch) {
+        const firstResponse = await getPets({
+          page: 0,
+          size,
+          species: species || undefined,
+          ownerId: owner
+            ? Number(owner)
+            : undefined,
+          active: !showArchived,
+          sort: sortOption,
+        });
 
+        let allPets: Pet[] = [
+          ...(firstResponse.content ?? []),
+        ];
 
-const data = await getPets({
-  page,
-  size,
-  search: debouncedSearch || undefined,
-  species: species || undefined,
-  ownerId: owner ? Number(owner) : undefined,
-  active: !showArchived,
-  sort: sortOption,
-});
+        const backendTotalPages =
+          firstResponse.totalPages;
 
-setPets(data.content);
-setTotalPages(data.totalPages);
+        if (backendTotalPages > 1) {
+          const remainingPages =
+            await Promise.all(
+              Array.from(
+                {
+                  length:
+                    backendTotalPages - 1,
+                },
+                (_, index) =>
+                  getPets({
+                    page: index + 1,
+                    size,
+                    species:
+                      species || undefined,
+                    ownerId: owner
+                      ? Number(owner)
+                      : undefined,
+                    active:
+                      !showArchived,
+                    sort: sortOption,
+                  })
+              )
+            );
 
+          remainingPages.forEach(
+            (response) => {
+              allPets = [
+                ...allPets,
+                ...(response.content ?? []),
+              ];
+            }
+          );
+        }
 
+        /*
+         * Search frontend'de tüm kayıtlar üzerinde
+         * yapılır.
+         */
+        const keyword =
+          debouncedSearch.toLowerCase();
 
-    } catch(error) {
+        const filteredPets =
+          allPets.filter((pet) => {
+            const petName =
+              pet.name?.toLowerCase() ?? "";
 
+            const petSpecies =
+              pet.species?.toLowerCase() ?? "";
 
+            const petBreed =
+              pet.breed?.toLowerCase() ?? "";
 
+            return (
+              petName.includes(keyword) ||
+              petSpecies.includes(keyword) ||
+              petBreed.includes(keyword)
+            );
+          });
+
+        /*
+         * Frontend pagination
+         */
+        const frontendTotalPages =
+          Math.ceil(
+            filteredPets.length / size
+          );
+
+        setTotalPages(
+          frontendTotalPages
+        );
+
+        const startIndex =
+          page * size;
+
+        const endIndex =
+          startIndex + size;
+
+        setPets(
+          filteredPets.slice(
+            startIndex,
+            endIndex
+          )
+        );
+      } else {
+        /*
+         * Search yoksa mevcut backend
+         * pagination aynen kullanılır.
+         */
+        const data = await getPets({
+          page,
+          size,
+          species:
+            species || undefined,
+          ownerId: owner
+            ? Number(owner)
+            : undefined,
+          active: !showArchived,
+          sort: sortOption,
+        });
+
+        setPets(
+          data.content ?? []
+        );
+
+        setTotalPages(
+          data.totalPages
+        );
+      }
+    } catch (error) {
+      console.error(error);
 
       setError(
         "Failed to load pets."
       );
-
-
-
     } finally {
-
-
       setLoading(false);
-
-
     }
-
-
   };
+
   const fetchPetStats = async () => {
-  try {
-    const data =
-      await getPetStats();
+    try {
+      const data =
+        await getPetStats();
 
-    setStats(data);
+      setStats(data);
+    } catch (error) {
+      console.error(
+        "Failed to load pet stats:",
+        error
+      );
+    }
+  };
 
-  } catch (error) {
-    console.error(
-      "Failed to load pet stats:",
-      error
-    );
-  }
-};
   const fetchOwners = async () => {
-  try {
-    const data = await getOwners();
+    try {
+      const data =
+        await getOwners();
 
-    
-
-    setOwners(data.content ?? []);
-  } catch (error) {
-    console.error(error);
-    setOwners([]);
-  }
-};
-
-
-
+      setOwners(
+        data.content ?? []
+      );
+    } catch (error) {
+      console.error(error);
+      setOwners([]);
+    }
+  };
 
   useEffect(() => {
-  fetchPets();
-}, [
-  page,
-  size,
-  debouncedSearch,
-  species,
-  owner,
-  sort,
-  showArchived,
-]);
-useEffect(() => {
-  fetchPetStats();
-}, []);
-useEffect(() => {
-  const timer = setTimeout(() => {
-    setDebouncedSearch(search.trim());
-  }, 400);
-
-  return () => clearTimeout(timer);
-}, [search]);
-
-useEffect(() => {
-  fetchOwners();
-}, []);
-
-  const handleExportPets = () => {
-
-  const headers = [
-    "ID",
-    "Name",
-    "Species",
-    "Breed",
-    "Owner",
-  ];
-
-
-  const rows = pets.map((pet) => [
-
-    pet.id,
-    pet.name,
-    pet.species,
-    pet.breed,
-    owners.find(
-      (owner) => owner.id === pet.ownerId
-    )
-      ? `${owners.find(
-          (owner) => owner.id === pet.ownerId
-        )?.firstName} ${
-          owners.find(
-            (owner) => owner.id === pet.ownerId
-          )?.lastName
-        }`
-      : "-",
-
+    fetchPets();
+  }, [
+    page,
+    size,
+    debouncedSearch,
+    species,
+    owner,
+    sort,
+    showArchived,
   ]);
 
+  useEffect(() => {
+    fetchPetStats();
+  }, []);
 
+  useEffect(() => {
+    const timer =
+      setTimeout(() => {
+        setDebouncedSearch(
+          search.trim()
+        );
+      }, 400);
 
-  const csvContent = [
+    return () =>
+      clearTimeout(timer);
+  }, [search]);
 
-    headers.join(","),
+  useEffect(() => {
+    fetchOwners();
+  }, []);
 
-    ...rows.map(
-      (row) => row.join(",")
-    )
+  const handleExportPets = () => {
+    const headers = [
+      "ID",
+      "Name",
+      "Species",
+      "Breed",
+      "Owner",
+    ];
 
-  ].join("\n");
+    const rows =
+      pets.map((pet) => [
+        pet.id,
+        pet.name,
+        pet.species,
+        pet.breed,
+        owners.find(
+          (owner) =>
+            owner.id === pet.ownerId
+        )
+          ? `${owners.find(
+              (owner) =>
+                owner.id === pet.ownerId
+            )?.firstName} ${
+              owners.find(
+                (owner) =>
+                  owner.id === pet.ownerId
+              )?.lastName
+            }`
+          : "-",
+      ]);
 
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) =>
+        row.join(",")
+      ),
+    ].join("\n");
 
+    const blob =
+      new Blob(
+        [csvContent],
+        {
+          type: "text/csv;charset=utf-8;",
+        }
+      );
 
-  const blob = new Blob(
-    [csvContent],
-    {
-      type: "text/csv;charset=utf-8;",
-    }
-  );
+    const url =
+      URL.createObjectURL(blob);
 
+    const link =
+      document.createElement("a");
 
-  const url =
-    URL.createObjectURL(blob);
+    link.href = url;
 
+    link.download =
+      "pets-export.csv";
 
+    link.click();
 
-  const link =
-    document.createElement("a");
-
-
-  link.href = url;
-
-
-  link.download =
-    "pets-export.csv";
-
-
-  link.click();
-
-
-
-  URL.revokeObjectURL(url);
-
-};
-const handleAddOwner = () => {
-  setIsOwnerModalOpen(true);
-};
-const handleSubmitOwner = async (
-  values: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    address: string;
-  }
-) => {
-  try {
-    const newOwner = await createOwner(values);
-
-    await fetchOwners();
-
-    setSelectedOwnerId(newOwner.id);
-
-    setIsOwnerModalOpen(false);
-
-    toast.success("Owner created successfully.");
-  } catch (error: any) {
-    console.error(error);
-
-    const message =
-      error?.response?.data?.message ??
-      "Failed to create owner.";
-
-    toast.error(message);
-  }
-};
-
- 
-
-
-
-
-
-
-
-  const handleAddPet = () => {
-
-
-    setSelectedPet(null);
-
-
-    setIsModalOpen(true);
-
-
+    URL.revokeObjectURL(url);
   };
 
+  const handleAddOwner = () => {
+    setIsOwnerModalOpen(true);
+  };
 
+  const handleSubmitOwner = async (
+    values: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      address: string;
+    }
+  ) => {
+    try {
+      const newOwner =
+        await createOwner(values);
 
+      await fetchOwners();
 
+      setSelectedOwnerId(
+        newOwner.id
+      );
 
+      setIsOwnerModalOpen(false);
 
+      toast.success(
+        "Owner created successfully."
+      );
+    } catch (error: any) {
+      console.error(error);
+
+      const message =
+        error?.response?.data?.message ??
+        "Failed to create owner.";
+
+      toast.error(message);
+    }
+  };
+
+  const handleAddPet = () => {
+    setSelectedPet(null);
+    setIsModalOpen(true);
+  };
 
   const handleEditPet = (
     pet: Pet
   ) => {
-
-
     setSelectedPet(pet);
-
-
     setIsModalOpen(true);
-
-
   };
-
-
-
-
-
-
 
   const handleCloseModal = () => {
-
-
     setIsModalOpen(false);
-
-
     setSelectedPet(null);
-
-
   };
-
-
-
-
-
-
-
 
   const handleSubmitPet = async (
     values: CreatePetRequest
   ) => {
-
-
     try {
-
-
       if (selectedPet) {
-  await updatePet(selectedPet.id, values);
+        await updatePet(
+          selectedPet.id,
+          values
+        );
 
-  toast.success("Pet updated successfully.");
-} else {
-  await createPet(values);
+        toast.success(
+          "Pet updated successfully."
+        );
+      } else {
+        await createPet(values);
 
-  toast.success("Pet created successfully.");
-}
-
-
+        toast.success(
+          "Pet created successfully."
+        );
+      }
 
       await fetchPets();
 
-
-
       handleCloseModal();
-
-
-
     } catch (error: any) {
-  console.error(error);
+      console.error(error);
 
-  const message =
-    error?.response?.data?.message ??
-    "Failed to save pet.";
+      const message =
+        error?.response?.data?.message ??
+        "Failed to save pet.";
 
-  toast.error(message);
-}
-
-
+      toast.error(message);
+    }
   };
 
-
-const handleArchivePet = (
+  const handleArchivePet = (
     pet: Pet
   ) => {
-
-
     setPetToArchive(pet);
-
-
   };
-   const handleConfirmArchive = async () => {
-  if (!petToArchive) return;
 
-  try {
-    if (showArchived) {
-      await activatePet(petToArchive.id);
+  const handleConfirmArchive =
+    async () => {
+      if (!petToArchive) return;
 
-      toast.success("Pet restored successfully.");
-    } else {
-      await archivePet(petToArchive.id);
+      try {
+        if (showArchived) {
+          await activatePet(
+            petToArchive.id
+          );
 
-      toast.success("Pet archived successfully.");
-    }
+          toast.success(
+            "Pet restored successfully."
+          );
+        } else {
+          await archivePet(
+            petToArchive.id
+          );
 
-    await fetchPets();
+          toast.success(
+            "Pet archived successfully."
+          );
+        }
 
-    setPetToArchive(null);
+        await fetchPets();
 
-  } catch (error: any) {
-    console.error(error);
+        setPetToArchive(null);
+      } catch (error: any) {
+        console.error(error);
 
-    const message =
-      error?.response?.data?.message ??
-      "Operation failed.";
+        const message =
+          error?.response?.data?.message ??
+          "Operation failed.";
 
-    toast.error(message);
-  }
-};
-return (
+        toast.error(message);
+      }
+    };
 
+  return (
     <DashboardLayout>
-
-
       <PageContainer>
 
-
         <div className="mb-8">
-
-
           <h1
             className="
               text-3xl
@@ -517,12 +546,8 @@ return (
               text-slate-900
             "
           >
-
             Pets
-
           </h1>
-
-
 
           <p
             className="
@@ -531,275 +556,276 @@ return (
               text-slate-500
             "
           >
-
             Manage pets, medical records and owner information from one place.
-
           </p>
+        </div>
 
+        <div className="space-y-8">
+
+          {loading ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
+              Loading pets...
+            </div>
+          ) : error ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
+              {error}
+            </div>
+          ) : (
+            <>
+              <PetStats
+                stats={stats}
+              />
+
+              <div
+                className="
+                  flex
+                  w-fit
+                  rounded-xl
+                  border
+                  border-slate-200
+                  bg-white
+                  p-1
+                  shadow-sm
+                  mb-2
+                "
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowArchived(false);
+                    setPage(0);
+                  }}
+                  className={`
+                    rounded-xl
+                    px-6
+                    py-2.5
+                    text-sm
+                    font-semibold
+                    transition
+                    ${
+                      !showArchived
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100"
+                    }
+                  `}
+                >
+                  Active Pets
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowArchived(true);
+                    setPage(0);
+                  }}
+                  className={`
+                    rounded-xl
+                    px-6
+                    py-2.5
+                    text-sm
+                    font-semibold
+                    transition
+                    ${
+                      showArchived
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100"
+                    }
+                  `}
+                >
+                  Archived Pets
+                </button>
+              </div>
+
+              <PetToolbar
+                search={search}
+                species={species}
+                owner={owner}
+                sort={sort}
+                owners={owners}
+                onSearchChange={(value) => {
+                  setSearch(value);
+                  setPage(0);
+                }}
+                onSpeciesChange={(value) => {
+                  setSpecies(value);
+                  setPage(0);
+                }}
+                onOwnerChange={(value) => {
+                  setOwner(value);
+                  setPage(0);
+                }}
+                onSortChange={(value) => {
+                  setSort(value);
+                  setPage(0);
+                }}
+                onAddPet={handleAddPet}
+                onExport={handleExportPets}
+              />
+
+              {pets.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center text-slate-500">
+                  No pets found.
+                </div>
+              ) : (
+                <>
+                  <PetTable
+                    pets={pets}
+                    owners={owners}
+                    onEdit={handleEditPet}
+                    onDelete={handleArchivePet}
+                  />
+
+                  {totalPages > 1 && (
+                    <div className="mt-6 flex items-center justify-between">
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPage(
+                            (prev) =>
+                              prev - 1
+                          )
+                        }
+                        disabled={
+                          page === 0
+                        }
+                        className="rounded-lg border px-4 py-2 disabled:opacity-50"
+                      >
+                        Previous
+                      </button>
+
+                      <span className="text-sm text-slate-600">
+                        Page{" "}
+                        {page + 1}{" "}
+                        of{" "}
+                        {totalPages}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPage(
+                            (prev) =>
+                              prev + 1
+                          )
+                        }
+                        disabled={
+                          page + 1 >=
+                          totalPages
+                        }
+                        className="rounded-lg border px-4 py-2 disabled:opacity-50"
+                      >
+                        Next
+                      </button>
+
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
 
         </div>
 
-
-
-
-
-        <div className="space-y-8">
-          {loading ? (
-  <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
-    Loading pets...
-  </div>
-) : error ? (
-  <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
-    {error}
-  </div>
-) : (
-  <>
-    <PetStats stats={stats} />
-
-    <div
-      className="
-        flex
-        w-fit
-        rounded-xl
-        border
-        border-slate-200
-        bg-white
-        p-1
-        shadow-sm
-        mb-2
-      "
-    >
-      <button
-        type="button"
-        onClick={() => {
-          setShowArchived(false);
-          setPage(0);
-        }}
-        className={`
-          rounded-xl
-          px-6
-          py-2.5
-          text-sm
-          font-semibold
-          transition
-          ${
-            !showArchived
-              ? "bg-blue-600 text-white shadow-sm"
-              : "text-slate-600 hover:bg-slate-100"
-          }
-        `}
-      >
-        Active Pets
-      </button>
-
-      <button
-        type="button"
-        onClick={() => {
-          setShowArchived(true);
-          setPage(0);
-        }}
-        className={`
-          rounded-xl
-          px-6
-          py-2.5
-          text-sm
-          font-semibold
-          transition
-          ${
-            showArchived
-              ? "bg-blue-600 text-white shadow-sm"
-              : "text-slate-600 hover:bg-slate-100"
-          }
-        `}
-      >
-        Archived Pets
-      </button>
-    </div>
-
-    <PetToolbar
-      search={search}
-      species={species}
-      owner={owner}
-      sort={sort}
-      owners={owners}
-      onSearchChange={(value) => {
-        setSearch(value);
-        setPage(0);
-      }}
-      onSpeciesChange={(value) => {
-        setSpecies(value);
-        setPage(0);
-      }}
-      onOwnerChange={(value) => {
-        setOwner(value);
-        setPage(0);
-      }}
-      onSortChange={(value) => {
-        setSort(value);
-        setPage(0);
-      }}
-      onAddPet={handleAddPet}
-      onExport={handleExportPets}
-    />
-
-    {pets.length === 0 ? (
-      <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center text-slate-500">
-        No pets found.
-      </div>
-    ) : (
-      <>
-        <PetTable
-          pets={pets}
-          owners={owners}
-          onEdit={handleEditPet}
-          onDelete={handleArchivePet}
-        />
-
-        {totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setPage((prev) => prev - 1)}
-              disabled={page === 0}
-              className="rounded-lg border px-4 py-2 disabled:opacity-50"
-            >
-              Previous
-            </button>
-
-            <span className="text-sm text-slate-600">
-              Page {page + 1} of {totalPages}
-            </span>
-
-            <button
-              type="button"
-              onClick={() => setPage((prev) => prev + 1)}
-              disabled={page + 1 >= totalPages}
-              className="rounded-lg border px-4 py-2 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-        )}
-      </>
-    )}
-  </>
-)}
-
-</div>
-
-<Modal
-
-
+        <Modal
           open={isModalOpen}
-
-
           title={
             selectedPet
               ? "Edit Pet"
               : "Add New Pet"
           }
-
-
-          onClose={handleCloseModal}
-
-
+          onClose={
+            handleCloseModal
+          }
         >
-
-
-
-         <PetForm
-  initialValues={
-    selectedPet
-      ? {
-          ownerId: selectedPet.ownerId,
-          name: selectedPet.name,
-          species: selectedPet.species,
-          breed: selectedPet.breed,
-          speciesNote: selectedPet.speciesNote ?? "",
-          birthDate: selectedPet.birthDate,
-          sex: selectedPet.sex,
-          weightKg: selectedPet.weightKg,
-          allergies: selectedPet.allergies ?? "",
-          chronicConditions: selectedPet.chronicConditions ?? "",
-        }
-      : undefined
-  }
-
-  owners={owners}
-    selectedOwnerId={selectedOwnerId}
-
-  isLoading={loading}
-
-  mode={
-    selectedPet
-      ? "edit"
-      : "create"
-  }
-
-  onSubmit={handleSubmitPet}
-
-  onCancel={handleCloseModal}
-
-  onAddOwner={handleAddOwner}
-/>
-
-
+          <PetForm
+            initialValues={
+              selectedPet
+                ? {
+                    ownerId:
+                      selectedPet.ownerId,
+                    name:
+                      selectedPet.name,
+                    species:
+                      selectedPet.species,
+                    breed:
+                      selectedPet.breed,
+                    speciesNote:
+                      selectedPet.speciesNote ??
+                      "",
+                    birthDate:
+                      selectedPet.birthDate,
+                    sex:
+                      selectedPet.sex,
+                    weightKg:
+                      selectedPet.weightKg,
+                    allergies:
+                      selectedPet.allergies ??
+                      "",
+                    chronicConditions:
+                      selectedPet.chronicConditions ??
+                      "",
+                  }
+                : undefined
+            }
+            owners={owners}
+            selectedOwnerId={
+              selectedOwnerId
+            }
+            isLoading={loading}
+            mode={
+              selectedPet
+                ? "edit"
+                : "create"
+            }
+            onSubmit={
+              handleSubmitPet
+            }
+            onCancel={
+              handleCloseModal
+            }
+            onAddOwner={
+              handleAddOwner
+            }
+          />
         </Modal>
+
         <Modal
-  open={isOwnerModalOpen}
-  title="Add New Owner"
-  onClose={() => setIsOwnerModalOpen(false)}
->
-  <OwnerForm
-    onSubmit={handleSubmitOwner}
-    onCancel={() => setIsOwnerModalOpen(false)}
-  />
-</Modal>
-
-
-
-
-
-
-
-
+          open={isOwnerModalOpen}
+          title="Add New Owner"
+          onClose={() =>
+            setIsOwnerModalOpen(false)
+          }
+        >
+          <OwnerForm
+            onSubmit={
+              handleSubmitOwner
+            }
+            onCancel={() =>
+              setIsOwnerModalOpen(false)
+            }
+          />
+        </Modal>
 
         <DeletePetDialog
-
-
           open={!!petToArchive}
-
-
-
           petName={
             petToArchive
               ? petToArchive.name
               : ""
           }
-
-
-
           onClose={() =>
             setPetToArchive(null)
           }
-
-
-
-          onConfirm={handleConfirmArchive}
-
-
-
+          onConfirm={
+            handleConfirmArchive
+          }
           mode={
             showArchived
               ? "restore"
               : "archive"
           }
-
-
         />
-
-
-
 
       </PageContainer>
     </DashboardLayout>

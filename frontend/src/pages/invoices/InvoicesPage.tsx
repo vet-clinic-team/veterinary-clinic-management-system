@@ -9,6 +9,7 @@ import InvoiceToolbar from "../../components/invoices/InvoiceToolbar";
 import InvoiceTable from "../../components/invoices/InvoiceTable";
 import InvoiceForm from "../../components/invoices/InvoiceForm";
 import InvoiceDetailsDialog from "../../components/invoices/InvoiceDetailsDialog";
+
 import toast from "react-hot-toast";
 
 import {
@@ -28,15 +29,20 @@ import type {
 } from "../../types/invoice";
 
 function InvoicesPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoices, setInvoices] =
+    useState<Invoice[]>([]);
+
   const [stats, setStats] =
-  useState<InvoiceStatsType | null>(null);
+    useState<InvoiceStatsType | null>(null);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] =
+    useState("");
 
   const [status, setStatus] =
     useState<InvoiceStatus | "">("");
@@ -64,53 +70,183 @@ function InvoicesPage() {
   const [isDetailsOpen, setIsDetailsOpen] =
     useState(false);
 
-  const [
-    selectedInvoice,
-    setSelectedInvoice,
-  ] = useState<Invoice | null>(null);
-  const [selectedInvoices, setSelectedInvoices] = useState<number[]>([]);
+  const [selectedInvoice, setSelectedInvoice] =
+    useState<Invoice | null>(null);
+
+  const [selectedInvoices, setSelectedInvoices] =
+    useState<number[]>([]);
 
   const fetchInvoices = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await getInvoices({
-        page,
-        size,
-        sort,
-        status: status || undefined,
-        from: from || undefined,
-        to: to || undefined,
-      });
+      /*
+       * Backend'de search parametresi olmadığı için:
+       *
+       * Search varsa:
+       * 1. Backend'deki bütün sayfaları getiriyoruz.
+       * 2. Search işlemini frontend'de yapıyoruz.
+       * 3. Sonucu tekrar frontend'de 20'şerli sayfalıyoruz.
+       *
+       * Böylece örneğin aranan invoice 20. sayfadaysa
+       * search yine bulabiliyor.
+       */
 
-      setInvoices(response.content);
-      setTotalPages(response.totalPages);
+      if (search.trim()) {
+        const firstResponse =
+          await getInvoices({
+            page: 0,
+            size,
+            sort,
+            status:
+              status || undefined,
+            from:
+              from || undefined,
+            to:
+              to || undefined,
+          });
+
+        let allInvoices: Invoice[] = [
+          ...(firstResponse.content ?? []),
+        ];
+
+        const totalBackendPages =
+          firstResponse.totalPages;
+
+        if (totalBackendPages > 1) {
+          const remainingPages =
+            await Promise.all(
+              Array.from(
+                {
+                  length:
+                    totalBackendPages - 1,
+                },
+                (_, index) =>
+                  getInvoices({
+                    page: index + 1,
+                    size,
+                    sort,
+                    status:
+                      status || undefined,
+                    from:
+                      from || undefined,
+                    to:
+                      to || undefined,
+                  })
+              )
+            );
+
+          remainingPages.forEach(
+            (response) => {
+              allInvoices = [
+                ...allInvoices,
+                ...(response.content ?? []),
+              ];
+            }
+          );
+        }
+
+        const keyword =
+          search
+            .trim()
+            .toLowerCase();
+
+        const filteredInvoices =
+          allInvoices.filter(
+            (invoice) => {
+              return (
+                invoice.id
+                  .toString()
+                  .includes(keyword) ||
+                invoice.visitId
+                  .toString()
+                  .includes(keyword) ||
+                invoice.status
+                  .toLowerCase()
+                  .includes(keyword)
+              );
+            }
+          );
+
+        /*
+         * Search sonucunu frontend'de
+         * 20'şerli sayfalıyoruz.
+         */
+        const frontendTotalPages =
+          Math.ceil(
+            filteredInvoices.length /
+              size
+          );
+
+        setTotalPages(
+          frontendTotalPages
+        );
+
+        const startIndex =
+          page * size;
+
+        const endIndex =
+          startIndex + size;
+
+        setInvoices(
+          filteredInvoices.slice(
+            startIndex,
+            endIndex
+          )
+        );
+      } else {
+        /*
+         * Search yoksa backend'in
+         * normal pagination'ını kullanıyoruz.
+         */
+        const response =
+          await getInvoices({
+            page,
+            size,
+            sort,
+            status:
+              status || undefined,
+            from:
+              from || undefined,
+            to:
+              to || undefined,
+          });
+
+        setInvoices(
+          response.content ?? []
+        );
+
+        setTotalPages(
+          response.totalPages
+        );
+      }
+
       setSelectedInvoices([]);
     } catch (error) {
       console.error(error);
-      setError("Failed to load invoices.");
+
+      setError(
+        "Failed to load invoices."
+      );
     } finally {
       setLoading(false);
     }
   };
+
   const fetchStats = async () => {
-  try {
+    try {
+      const data =
+        await getInvoiceStats();
 
-    const data =
-      await getInvoiceStats();
-
-    setStats(data);
-
-  } catch (error) {
-
-    console.error(
-      "Invoice stats error:",
-      error
-    );
-
-  }
-};
+      setStats(data);
+    } catch (error) {
+      console.error(
+        "Invoice stats error:",
+        error
+      );
+    }
+  };
 
   useEffect(() => {
     fetchInvoices();
@@ -120,23 +256,15 @@ function InvoicesPage() {
     from,
     to,
     sort,
+    search,
   ]);
+
   useEffect(() => {
-  fetchStats();
-}, []);
-    const filteredInvoices = invoices.filter((invoice) => {
-    if (!search.trim()) {
-      return true;
-    }
+    fetchStats();
+  }, []);
 
-    const keyword = search.toLowerCase();
-
-    return (
-      invoice.id.toString().includes(keyword) ||
-      invoice.visitId.toString().includes(keyword) ||
-      invoice.status.toLowerCase().includes(keyword)
-    );
-  });
+  const displayedInvoices =
+    invoices;
 
   const handleCreateInvoice = () => {
     setSelectedInvoice(null);
@@ -147,7 +275,9 @@ function InvoicesPage() {
     setIsFormOpen(false);
   };
 
-  const handleViewInvoice = (invoice: Invoice) => {
+  const handleViewInvoice = (
+    invoice: Invoice
+  ) => {
     setSelectedInvoice(invoice);
     setIsDetailsOpen(true);
   };
@@ -157,282 +287,447 @@ function InvoicesPage() {
     setIsDetailsOpen(false);
   };
 
-  const handleSubmitInvoice = async (
-    values: CreateInvoiceRequest
-  ) => {
-   try {
-  await createInvoice(values);
+  const handleSubmitInvoice =
+    async (
+      values: CreateInvoiceRequest
+    ) => {
+      try {
+        await createInvoice(
+          values
+        );
 
-  toast.success("Invoice created successfully.");
+        toast.success(
+          "Invoice created successfully."
+        );
 
-  setIsFormOpen(false);
+        setIsFormOpen(false);
 
-  await fetchInvoices();
-} catch (error: any) {
-  console.error(error);
+        await fetchInvoices();
+      } catch (error: any) {
+        console.error(error);
 
-  const message =
-    error?.response?.data?.message ??
-    "Failed to create invoice.";
+        const message =
+          error?.response?.data
+            ?.message ??
+          "Failed to create invoice.";
 
-  toast.error(message);
-}
-  };
+        toast.error(message);
+      }
+    };
 
-  const handleSendInvoice = async (
-    invoice: Invoice
-  ) => {
-    try {
-  await sendInvoice(invoice.id);
+  const handleSendInvoice =
+    async (
+      invoice: Invoice
+    ) => {
+      try {
+        await sendInvoice(
+          invoice.id
+        );
 
-  toast.success("Invoice sent successfully.");
+        toast.success(
+          "Invoice sent successfully."
+        );
 
-  await fetchInvoices();
-} catch (error: any) {
-  console.error(error);
+        await fetchInvoices();
+      } catch (error: any) {
+        console.error(error);
 
-  const message =
-    error?.response?.data?.message ??
-    "Failed to send invoice.";
+        const message =
+          error?.response?.data
+            ?.message ??
+          "Failed to send invoice.";
 
-  toast.error(message);
-}
-  };
+        toast.error(message);
+      }
+    };
 
-  const handleMarkPaid = async (
-    invoice: Invoice
-  ) => {
-   try {
-  await markInvoicePaid(invoice.id);
+  const handleMarkPaid =
+    async (
+      invoice: Invoice
+    ) => {
+      try {
+        await markInvoicePaid(
+          invoice.id
+        );
 
-  toast.success("Invoice marked as paid.");
+        toast.success(
+          "Invoice marked as paid."
+        );
 
-  await fetchInvoices();
-} catch (error: any) {
-  console.error(error);
+        await fetchInvoices();
+      } catch (error: any) {
+        console.error(error);
 
-  const message =
-    error?.response?.data?.message ??
-    "Failed to mark invoice as paid.";
+        const message =
+          error?.response?.data
+            ?.message ??
+          "Failed to mark invoice as paid.";
 
-  toast.error(message);
-}
-  };
+        toast.error(message);
+      }
+    };
+
   const handleSelectInvoice = (
-  invoiceId: number,
-  checked: boolean
-) => {
-  if (checked) {
-    setSelectedInvoices((previous) => [
-      ...previous,
-      invoiceId,
-    ]);
-  } else {
-    setSelectedInvoices((previous) =>
-      previous.filter((id) => id !== invoiceId)
-    );
-  }
-};
-
-const handleSelectAll = (
-  checked: boolean
-) => {
-  if (checked) {
-    setSelectedInvoices(
-      filteredInvoices.map((invoice) => invoice.id)
-    );
-  } else {
-    setSelectedInvoices([]);
-  }
-};
-
-const handleBulkMarkPaid = async () => {
-  if (selectedInvoices.length === 0) {
-    return;
-  }
-
-  try {
-    await bulkMarkInvoicePaid({
-      invoiceIds: selectedInvoices,
-    });
-
-    setSelectedInvoices([]);
-
-    await fetchInvoices();
-  } catch (error) {
-    console.error(
-      "Failed to mark invoices as paid:",
-      error
-    );
-  }
-};
-
-  const handleExportInvoices = () => {
-    const headers = [
-      "Invoice ID",
-      "Visit ID",
-      "Issued At",
-      "Status",
-      "Subtotal",
-      "VAT",
-      "Total",
-    ];
-
-    const rows = filteredInvoices.map((invoice) => [
-      invoice.id,
-      invoice.visitId,
-      invoice.issuedAt,
-      invoice.status,
-      invoice.subtotal,
-      invoice.vatAmount,
-      invoice.total,
-    ]);
-
-    const csv = [
-      headers.join(","),
-      ...rows.map((row) => row.join(",")),
-    ].join("\n");
-
-    const blob = new Blob([csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = "invoices.csv";
-
-    document.body.appendChild(link);
-
-    link.click();
-
-    document.body.removeChild(link);
-
-    URL.revokeObjectURL(url);
+    invoiceId: number,
+    checked: boolean
+  ) => {
+    if (checked) {
+      setSelectedInvoices(
+        (previous) => [
+          ...previous,
+          invoiceId,
+        ]
+      );
+    } else {
+      setSelectedInvoices(
+        (previous) =>
+          previous.filter(
+            (id) =>
+              id !== invoiceId
+          )
+      );
+    }
   };
-    return (
-  <DashboardLayout>
-    <PageContainer>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">
-          Invoices
-        </h1>
 
-        <p className="mt-2 text-slate-500">
-          Manage clinic invoices and billing.
-        </p>
-      </div>
+  const handleSelectAll = (
+    checked: boolean
+  ) => {
+    if (checked) {
+      setSelectedInvoices(
+        displayedInvoices.map(
+          (invoice) =>
+            invoice.id
+        )
+      );
+    } else {
+      setSelectedInvoices([]);
+    }
+  };
 
-      {loading ? (
-        <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
-          Loading invoices...
+  const handleBulkMarkPaid =
+    async () => {
+      if (
+        selectedInvoices.length ===
+        0
+      ) {
+        return;
+      }
+
+      try {
+        await bulkMarkInvoicePaid({
+          invoiceIds:
+            selectedInvoices,
+        });
+
+        setSelectedInvoices([]);
+
+        toast.success(
+          "Invoices marked as paid."
+        );
+
+        await fetchInvoices();
+      } catch (error) {
+        console.error(
+          "Failed to mark invoices as paid:",
+          error
+        );
+
+        toast.error(
+          "Failed to mark invoices as paid."
+        );
+      }
+    };
+
+  const handleExportInvoices =
+    () => {
+      const headers = [
+        "Invoice ID",
+        "Visit ID",
+        "Issued At",
+        "Status",
+        "Subtotal",
+        "VAT",
+        "Total",
+      ];
+
+      const rows =
+        displayedInvoices.map(
+          (invoice) => [
+            invoice.id,
+            invoice.visitId,
+            invoice.issuedAt,
+            invoice.status,
+            invoice.subtotal,
+            invoice.vatAmount,
+            invoice.total,
+          ]
+        );
+
+      const csv = [
+        headers.join(","),
+        ...rows.map(
+          (row) =>
+            row.join(",")
+        ),
+      ].join("\n");
+
+      const blob =
+        new Blob(
+          [csv],
+          {
+            type:
+              "text/csv;charset=utf-8;",
+          }
+        );
+
+      const url =
+        URL.createObjectURL(
+          blob
+        );
+
+      const link =
+        document.createElement(
+          "a"
+        );
+
+      link.href = url;
+
+      link.download =
+        "invoices.csv";
+
+      document.body.appendChild(
+        link
+      );
+
+      link.click();
+
+      document.body.removeChild(
+        link
+      );
+
+      URL.revokeObjectURL(
+        url
+      );
+    };
+
+  return (
+    <DashboardLayout>
+      <PageContainer>
+
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900">
+            Invoices
+          </h1>
+
+          <p className="mt-2 text-slate-500">
+            Manage clinic invoices and billing.
+          </p>
         </div>
-      ) : error ? (
-        <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
-          {error}
-        </div>
-      ) : (
-        <>
-          <InvoiceStats stats={stats!} />
 
-          <div className="mt-8">
-            <InvoiceToolbar
-              search={search}
-              status={status}
-              from={from}
-              to={to}
-              sort={sort}
-              selectedCount={selectedInvoices.length}
-              onSearchChange={setSearch}
-              onStatusChange={setStatus}
-              onFromChange={setFrom}
-              onToChange={setTo}
-              onSortChange={setSort}
-              onExport={handleExportInvoices}
-              onCreate={handleCreateInvoice}
-              onBulkMarkPaid={handleBulkMarkPaid}
-            />
+        {/* Loading / Error / Content */}
+        {loading ? (
+          <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
+            Loading invoices...
           </div>
-
-          {filteredInvoices.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
-              <h3 className="text-lg font-semibold text-slate-700">
-                No invoices found
-              </h3>
-
-              <p className="mt-2 text-slate-500">
-                There are no invoices matching your search.
-              </p>
-            </div>
-          ) : (
-            <>
-              <InvoiceTable
-                invoices={filteredInvoices}
-                selectedInvoices={selectedInvoices}
-                onSelect={handleSelectInvoice}
-                onSelectAll={handleSelectAll}
-                onView={handleViewInvoice}
-                onSend={handleSendInvoice}
-                onMarkPaid={handleMarkPaid}
+        ) : error ? (
+          <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
+            {error}
+          </div>
+        ) : (
+          <>
+            {/* Statistics */}
+            {stats !== null && (
+              <InvoiceStats
+                stats={stats}
               />
+            )}
 
-              {totalPages > 1 && (
-                <div className="mt-6 flex items-center justify-end gap-3">
-                  <button
-                    type="button"
-                    disabled={page === 0}
-                    onClick={() =>
-                      setPage((previous) => previous - 1)
-                    }
-                    className="rounded-xl border border-slate-300 px-4 py-2 text-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
+            {/* Toolbar */}
+            <div className="mt-8">
+              <InvoiceToolbar
+                search={search}
+                status={status}
+                from={from}
+                to={to}
+                sort={sort}
+                selectedCount={
+                  selectedInvoices.length
+                }
+                onSearchChange={(
+                  value
+                ) => {
+                  setSearch(value);
+                  setPage(0);
+                }}
+                onStatusChange={(
+                  value
+                ) => {
+                  setStatus(value);
+                  setPage(0);
+                }}
+                onFromChange={(
+                  value
+                ) => {
+                  setFrom(value);
+                  setPage(0);
+                }}
+                onToChange={(
+                  value
+                ) => {
+                  setTo(value);
+                  setPage(0);
+                }}
+                onSortChange={(
+                  value
+                ) => {
+                  setSort(value);
+                  setPage(0);
+                }}
+                onExport={
+                  handleExportInvoices
+                }
+                onCreate={
+                  handleCreateInvoice
+                }
+                onBulkMarkPaid={
+                  handleBulkMarkPaid
+                }
+              />
+            </div>
 
-                  <span className="text-sm text-slate-600">
-                    Page {page + 1} of {totalPages}
-                  </span>
+            {/* Empty State */}
+            {displayedInvoices.length ===
+            0 ? (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
+                <h3 className="text-lg font-semibold text-slate-700">
+                  No invoices found
+                </h3>
 
-                  <button
-                    type="button"
-                    disabled={page + 1 >= totalPages}
-                    onClick={() =>
-                      setPage((previous) => previous + 1)
-                    }
-                    className="rounded-xl border border-slate-300 px-4 py-2 text-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </>
-      )}
+                <p className="mt-2 text-slate-500">
+                  There are no invoices matching your search.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Invoice Table */}
+                <InvoiceTable
+                  invoices={
+                    displayedInvoices
+                  }
+                  selectedInvoices={
+                    selectedInvoices
+                  }
+                  onSelect={
+                    handleSelectInvoice
+                  }
+                  onSelectAll={
+                    handleSelectAll
+                  }
+                  onView={
+                    handleViewInvoice
+                  }
+                  onSend={
+                    handleSendInvoice
+                  }
+                  onMarkPaid={
+                    handleMarkPaid
+                  }
+                />
 
-      <Modal
-        open={isFormOpen}
-        title="Create Invoice"
-        onClose={handleCloseForm}
-        maxWidth="2xl"
-      >
-        <InvoiceForm
-          mode="create"
-          onSubmit={handleSubmitInvoice}
-          onCancel={handleCloseForm}
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-6 flex items-center justify-end gap-3">
+
+                    <button
+                      type="button"
+                      disabled={
+                        page === 0
+                      }
+                      onClick={() =>
+                        setPage(
+                          (
+                            previous
+                          ) =>
+                            previous -
+                            1
+                        )
+                      }
+                      className="rounded-xl border border-slate-300 px-4 py-2 text-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Previous
+                    </button>
+
+                    <span className="text-sm text-slate-600">
+                      Page{" "}
+                      {page + 1}{" "}
+                      of{" "}
+                      {totalPages}
+                    </span>
+
+                    <button
+                      type="button"
+                      disabled={
+                        page + 1 >=
+                        totalPages
+                      }
+                      onClick={() =>
+                        setPage(
+                          (
+                            previous
+                          ) =>
+                            previous +
+                            1
+                        )
+                      }
+                      className="rounded-xl border border-slate-300 px-4 py-2 text-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Next
+                    </button>
+
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        {/* Create Invoice Modal */}
+        <Modal
+          open={isFormOpen}
+          title="Create Invoice"
+          onClose={
+            handleCloseForm
+          }
+          maxWidth="2xl"
+        >
+          <InvoiceForm
+            mode="create"
+            onSubmit={
+              handleSubmitInvoice
+            }
+            onCancel={
+              handleCloseForm
+            }
+          />
+        </Modal>
+
+        {/* Invoice Details */}
+        <InvoiceDetailsDialog
+          open={
+            isDetailsOpen
+          }
+          invoice={
+            selectedInvoice
+          }
+          onClose={
+            handleCloseDetails
+          }
         />
-      </Modal>
 
-      <InvoiceDetailsDialog
-        open={isDetailsOpen}
-        invoice={selectedInvoice}
-        onClose={handleCloseDetails}
-      />
-    </PageContainer>
-  </DashboardLayout>
-);
+      </PageContainer>
+    </DashboardLayout>
+  );
 }
 
 export default InvoicesPage;

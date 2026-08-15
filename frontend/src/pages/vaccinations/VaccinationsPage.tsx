@@ -39,6 +39,9 @@ function VaccinationsPage() {
   const [vaccinations, setVaccinations] =
     useState<Vaccination[]>([]);
 
+  const [allSearchVaccinations, setAllSearchVaccinations] =
+    useState<Vaccination[]>([]);
+
   const [pets, setPets] =
     useState<Pet[]>([]);
 
@@ -75,39 +78,35 @@ function VaccinationsPage() {
   const [vaccinationToDelete, setVaccinationToDelete] =
     useState<Vaccination | null>(null);
 
+  const getSortOption = () => {
+    switch (sort) {
+      case "administeredDesc":
+        return "administeredAt,desc";
+
+      case "administeredAsc":
+        return "administeredAt,asc";
+
+      case "vaccineAsc":
+        return "vaccineType,asc";
+
+      case "vaccineDesc":
+        return "vaccineType,desc";
+
+      default:
+        return "administeredAt,desc";
+    }
+  };
+
   const fetchVaccinations = async () => {
     try {
       setLoading(true);
       setError("");
 
-      let sortOption: string;
-
-      switch (sort) {
-        case "administeredDesc":
-          sortOption = "administeredAt,desc";
-          break;
-
-        case "administeredAsc":
-          sortOption = "administeredAt,asc";
-          break;
-
-        case "vaccineAsc":
-          sortOption = "vaccineType,asc";
-          break;
-
-        case "vaccineDesc":
-          sortOption = "vaccineType,desc";
-          break;
-
-        default:
-          sortOption = "administeredAt,desc";
-      }
-
       const data =
         await getVaccinations({
           page,
           size,
-          sort: sortOption,
+          sort: getSortOption(),
         });
 
       setVaccinations(
@@ -116,6 +115,54 @@ function VaccinationsPage() {
 
       setTotalPages(
         data.totalPages
+      );
+    } catch (error) {
+      console.error(error);
+
+      setError(
+        "Failed to load vaccinations."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAllVaccinationsForSearch = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const firstPage =
+        await getVaccinations({
+          page: 0,
+          size,
+          sort: getSortOption(),
+        });
+
+      let allVaccinations = [
+        ...(firstPage.content ?? []),
+      ];
+
+      for (
+        let currentPage = 1;
+        currentPage < firstPage.totalPages;
+        currentPage++
+      ) {
+        const nextPage =
+          await getVaccinations({
+            page: currentPage,
+            size,
+            sort: getSortOption(),
+          });
+
+        allVaccinations = [
+          ...allVaccinations,
+          ...(nextPage.content ?? []),
+        ];
+      }
+
+      setAllSearchVaccinations(
+        allVaccinations
       );
     } catch (error) {
       console.error(error);
@@ -182,11 +229,20 @@ function VaccinationsPage() {
   };
 
   useEffect(() => {
-    fetchVaccinations();
+    const timer = setTimeout(() => {
+      if (search.trim()) {
+        fetchAllVaccinationsForSearch();
+      } else {
+        fetchVaccinations();
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, [
     page,
     size,
     sort,
+    search,
   ]);
 
   useEffect(() => {
@@ -221,30 +277,44 @@ function VaccinationsPage() {
     setSelectedVaccination(null);
   };
 
-  const filteredVaccinations =
-    vaccinations.filter(
-      (vaccination) => {
-        const petName =
-          pets.find(
-            (pet) =>
-              pet.id ===
-              vaccination.petId
-          )?.name ?? "";
+  const searchResults = (
+    search.trim()
+      ? allSearchVaccinations
+      : vaccinations
+  ).filter((vaccination) => {
+    const petName =
+      pets.find(
+        (pet) =>
+          pet.id === vaccination.petId
+      )?.name ?? "";
 
-        return (
-          petName
-            .toLowerCase()
-            .includes(
-              search.toLowerCase()
-            ) ||
-          vaccination.vaccineType
-            .toLowerCase()
-            .includes(
-              search.toLowerCase()
-            )
-        );
-      }
+    const searchValue =
+      search.trim().toLowerCase();
+
+    return (
+      petName
+        .toLowerCase()
+        .includes(searchValue) ||
+      vaccination.vaccineType
+        .toLowerCase()
+        .includes(searchValue)
     );
+  });
+
+  const displayedVaccinations =
+    search.trim()
+      ? searchResults.slice(
+          page * size,
+          page * size + size
+        )
+      : searchResults;
+
+  const displayedTotalPages =
+    search.trim()
+      ? Math.ceil(
+          searchResults.length / size
+        )
+      : totalPages;
 
   const handleSubmitVaccination =
     async (
@@ -272,6 +342,10 @@ function VaccinationsPage() {
 
         await fetchVaccinations();
         await fetchStats();
+
+        if (search.trim()) {
+          await fetchAllVaccinationsForSearch();
+        }
 
         handleCloseModal();
       } catch (error: any) {
@@ -302,6 +376,10 @@ function VaccinationsPage() {
 
         await fetchVaccinations();
         await fetchStats();
+
+        if (search.trim()) {
+          await fetchAllVaccinationsForSearch();
+        }
 
         setVaccinationToDelete(
           null
@@ -409,8 +487,14 @@ function VaccinationsPage() {
 
             <div className="mt-8">
               <VaccinationToolbar
-                onSearch={setSearch}
-                onSort={setSort}
+                onSearch={(value) => {
+                  setSearch(value);
+                  setPage(0);
+                }}
+                onSort={(value) => {
+                  setSort(value);
+                  setPage(0);
+                }}
                 onAdd={
                   handleAddVaccination
                 }
@@ -420,7 +504,7 @@ function VaccinationsPage() {
               />
             </div>
 
-            {filteredVaccinations.length ===
+            {displayedVaccinations.length ===
             0 ? (
               <div className="rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
                 <h3 className="text-lg font-semibold text-slate-700">
@@ -435,7 +519,7 @@ function VaccinationsPage() {
               <>
                 <VaccinationTable
                   vaccinations={
-                    filteredVaccinations
+                    displayedVaccinations
                   }
                   pets={pets}
                   onEdit={
@@ -446,7 +530,7 @@ function VaccinationsPage() {
                   }
                 />
 
-                {totalPages > 1 && (
+                {displayedTotalPages > 1 && (
                   <div className="mt-6 flex items-center justify-between">
 
                     <button
@@ -469,14 +553,14 @@ function VaccinationsPage() {
                       Page{" "}
                       {page + 1}{" "}
                       of{" "}
-                      {totalPages}
+                      {displayedTotalPages}
                     </span>
 
                     <button
                       type="button"
                       disabled={
                         page + 1 >=
-                        totalPages
+                        displayedTotalPages
                       }
                       onClick={() =>
                         setPage(
