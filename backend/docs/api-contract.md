@@ -75,7 +75,7 @@ Note: soft-deletable resources (e.g. `Pet`) have no "real delete" endpoint at al
 
 | Method | Path | Roles | Description |
 |---|---|---|---|
-| POST | `/api/auth/register` | public | Register a new user |
+| POST | `/api/auth/register` | ADMIN | Register a new user (staff account provisioning, not self-service signup — see `decisions.md` entry 47) |
 | POST | `/api/auth/login` | public | Login, returns JWT |
 | GET | `/api/auth/me` | authenticated | Current user info |
 | PATCH | `/api/auth/users/{id}/reset-password` | ADMIN | Admin sets a new password for a user (no email/token flow — see `decisions.md` entry 20) |
@@ -433,7 +433,7 @@ No request body. `{id}` must reference a `COMPLETED` visit with a non-null `foll
 | POST | `/api/vaccinations` | ADMIN, VET | Create vaccination record |
 | GET | `/api/vaccinations/{id}` | ADMIN, VET, RECEPTIONIST | Vaccination detail |
 | PUT | `/api/vaccinations/{id}` | ADMIN, VET | Update vaccination |
-| DELETE | `/api/vaccinations/{id}` | ADMIN | Delete vaccination |
+| DELETE | `/api/vaccinations/{id}` | ADMIN, VET | Delete vaccination |
 | GET | `/api/vaccinations/stats` | ADMIN, VET, RECEPTIONIST | Vaccination stat-card totals over the full dataset |
 
 **POST /api/vaccinations — request**
@@ -589,6 +589,8 @@ No request body. `{id}` must reference a `COMPLETED` visit with a non-null `foll
   ]
 }
 ```
+
+> `monthlyRevenue` and `revenueByCategory` are both VAT-exclusive (`Invoice.subtotal` / `InvoiceItem.lineTotal`), so the two charts reconcile for the same period — see `decisions.md` entry 47. Neither includes the 18% VAT amount, which is collected on behalf of the tax authority, not clinic revenue.
 
 ### 5.9 Support Requests
 

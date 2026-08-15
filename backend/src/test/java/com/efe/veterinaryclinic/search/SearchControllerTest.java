@@ -49,6 +49,19 @@ class SearchControllerTest {
     }
 
     @Test
+    void searchCapsOwnerResultsAtFivePerCategory() throws Exception {
+        String token = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        String uniqueLastName = "SearchCap" + System.nanoTime();
+        for (int i = 0; i < 6; i++) {
+            createOwner(token, "search-cap-" + i + "-" + System.nanoTime() + "@example.com", "Owner" + i, uniqueLastName);
+        }
+
+        mockMvc.perform(get("/api/search").param("q", uniqueLastName).header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.owners.length()").value(5));
+    }
+
+    @Test
     void blankQueryReturnsEmptyResults() throws Exception {
         String token = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
 

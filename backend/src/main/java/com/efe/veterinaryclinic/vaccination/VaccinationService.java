@@ -4,10 +4,12 @@ import com.efe.veterinaryclinic.common.dto.PageResponse;
 import com.efe.veterinaryclinic.common.exception.ResourceNotFoundException;
 import com.efe.veterinaryclinic.pet.Pet;
 import com.efe.veterinaryclinic.pet.PetRepository;
+import com.efe.veterinaryclinic.security.Role;
 import com.efe.veterinaryclinic.vaccination.dto.VaccinationRequest;
 import com.efe.veterinaryclinic.vaccination.dto.VaccinationResponse;
 import com.efe.veterinaryclinic.vaccination.dto.VaccinationStatsResponse;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -33,7 +35,11 @@ public class VaccinationService {
         this.petRepository = petRepository;
     }
 
-    public VaccinationResponse create(VaccinationRequest request) {
+    public VaccinationResponse create(VaccinationRequest request, Role requesterRole) {
+        if (requesterRole == Role.RECEPTIONIST) {
+            throw new AccessDeniedException("RECEPTIONIST cannot create vaccination records");
+        }
+
         Pet pet = findPetOrThrow(request.petId());
         LocalDate nextDueDate = calculateNextDueDate(request.vaccineType(), request.administeredAt());
 
@@ -58,7 +64,11 @@ public class VaccinationService {
         return PageResponse.from(vaccinationRepository.findByPet_Id(petId, pageable).map(VaccinationResponse::from));
     }
 
-    public VaccinationResponse update(Long id, VaccinationRequest request) {
+    public VaccinationResponse update(Long id, VaccinationRequest request, Role requesterRole) {
+        if (requesterRole == Role.RECEPTIONIST) {
+            throw new AccessDeniedException("RECEPTIONIST cannot update vaccination records");
+        }
+
         Vaccination vaccination = findVaccinationOrThrow(id);
         Pet pet = findPetOrThrow(request.petId());
         LocalDate nextDueDate = calculateNextDueDate(request.vaccineType(), request.administeredAt());
@@ -69,7 +79,11 @@ public class VaccinationService {
         return VaccinationResponse.from(vaccinationRepository.save(vaccination));
     }
 
-    public void delete(Long id) {
+    public void delete(Long id, Role requesterRole) {
+        if (requesterRole == Role.RECEPTIONIST) {
+            throw new AccessDeniedException("RECEPTIONIST cannot delete vaccination records");
+        }
+
         vaccinationRepository.delete(findVaccinationOrThrow(id));
     }
 

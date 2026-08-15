@@ -1,6 +1,7 @@
 package com.efe.veterinaryclinic.vaccination;
 
 import com.efe.veterinaryclinic.common.dto.PageResponse;
+import com.efe.veterinaryclinic.security.CustomUserDetails;
 import com.efe.veterinaryclinic.vaccination.dto.VaccinationRequest;
 import com.efe.veterinaryclinic.vaccination.dto.VaccinationResponse;
 import com.efe.veterinaryclinic.vaccination.dto.VaccinationStatsResponse;
@@ -10,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,8 +34,10 @@ public class VaccinationController {
 
     @PostMapping
     @Operation(summary = "Create a vaccination record", description = "ADMIN, VET. nextDueDate is calculated by the backend.")
-    public ResponseEntity<VaccinationResponse> create(@Valid @RequestBody VaccinationRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(vaccinationService.create(request));
+    public ResponseEntity<VaccinationResponse> create(@Valid @RequestBody VaccinationRequest request,
+                                                        @AuthenticationPrincipal CustomUserDetails principal) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(vaccinationService.create(request, principal.getUser().getRole()));
     }
 
     @GetMapping
@@ -56,14 +60,15 @@ public class VaccinationController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Update a vaccination record", description = "ADMIN, VET.")
-    public ResponseEntity<VaccinationResponse> update(@PathVariable Long id, @Valid @RequestBody VaccinationRequest request) {
-        return ResponseEntity.ok(vaccinationService.update(id, request));
+    public ResponseEntity<VaccinationResponse> update(@PathVariable Long id, @Valid @RequestBody VaccinationRequest request,
+                                                        @AuthenticationPrincipal CustomUserDetails principal) {
+        return ResponseEntity.ok(vaccinationService.update(id, request, principal.getUser().getRole()));
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a vaccination record", description = "ADMIN only.")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        vaccinationService.delete(id);
+    @Operation(summary = "Delete a vaccination record", description = "ADMIN, VET.")
+    public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails principal) {
+        vaccinationService.delete(id, principal.getUser().getRole());
         return ResponseEntity.noContent().build();
     }
 }

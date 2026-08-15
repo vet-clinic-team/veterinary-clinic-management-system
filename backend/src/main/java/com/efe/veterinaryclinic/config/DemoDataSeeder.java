@@ -147,12 +147,12 @@ public class DemoDataSeeder implements CommandLineRunner {
                 now.plusDays(3).withHour(10).withMinute(30), "Follow-up dental check"));
         createCancelledVisit(pamuk.id(), vetAhmet.id(), now.minusDays(60).withHour(10).withMinute(0), "No-show");
 
-        vaccinationService.create(new VaccinationRequest(boncuk.id(), "ANNUAL", now.minusDays(400), "LOT-A1", "Ahmet Yildiz"));
-        vaccinationService.create(new VaccinationRequest(boncuk.id(), "THREE_YEAR", now.minusDays(30), "LOT-B2", "Ahmet Yildiz"));
-        vaccinationService.create(new VaccinationRequest(duman.id(), "ANNUAL", now.minusDays(10), "LOT-C3", "Elif Sahin"));
-        vaccinationService.create(new VaccinationRequest(pamuk.id(), "ANNUAL", now.minusDays(340), "LOT-D4", "Ahmet Yildiz"));
-        vaccinationService.create(new VaccinationRequest(zorro.id(), "THREE_YEAR", now.minusYears(1), "LOT-E5", "Elif Sahin"));
-        vaccinationService.create(new VaccinationRequest(minnos.id(), "ANNUAL", now.minusDays(5), "LOT-F6", "Elif Sahin"));
+        vaccinationService.create(new VaccinationRequest(boncuk.id(), "ANNUAL", now.minusDays(400), "LOT-A1", "Ahmet Yildiz"), Role.VET);
+        vaccinationService.create(new VaccinationRequest(boncuk.id(), "THREE_YEAR", now.minusDays(30), "LOT-B2", "Ahmet Yildiz"), Role.VET);
+        vaccinationService.create(new VaccinationRequest(duman.id(), "ANNUAL", now.minusDays(10), "LOT-C3", "Elif Sahin"), Role.VET);
+        vaccinationService.create(new VaccinationRequest(pamuk.id(), "ANNUAL", now.minusDays(340), "LOT-D4", "Ahmet Yildiz"), Role.VET);
+        vaccinationService.create(new VaccinationRequest(zorro.id(), "THREE_YEAR", now.minusYears(1), "LOT-E5", "Elif Sahin"), Role.VET);
+        vaccinationService.create(new VaccinationRequest(minnos.id(), "ANNUAL", now.minusDays(5), "LOT-F6", "Elif Sahin"), Role.VET);
 
         petWeightRecordService.create(boncuk.id(), new PetWeightRecordRequest(21.0, now.minusDays(180), "Initial weigh-in"));
         petWeightRecordService.create(boncuk.id(), new PetWeightRecordRequest(21.8, now.minusDays(90), null));

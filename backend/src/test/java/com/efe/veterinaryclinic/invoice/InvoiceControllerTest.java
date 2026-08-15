@@ -94,6 +94,33 @@ class InvoiceControllerTest {
     }
 
     @Test
+    void createInvoiceIgnoresClientSubmittedTotals() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long visitId = createVisit(receptionistToken, "invoice-spoofed-totals@example.com", "Sahte", "VET-LIC-INV-015");
+
+        String createBody = """
+                {
+                  "visitId": %d,
+                  "subtotal": 1.00,
+                  "vatAmount": 1.00,
+                  "total": 1.00,
+                  "items": [
+                    {"description": "Consultation", "category": "CONSULTATION", "quantity": 1, "unitPrice": 500.00}
+                  ]
+                }
+                """.formatted(visitId);
+
+        mockMvc.perform(post("/api/invoices")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.subtotal").value(500.00))
+                .andExpect(jsonPath("$.vatAmount").value(90.00))
+                .andExpect(jsonPath("$.total").value(590.00));
+    }
+
+    @Test
     void createInvoiceByVetIsForbidden() throws Exception {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
@@ -240,6 +267,17 @@ class InvoiceControllerTest {
     }
 
     @Test
+    void sendInvoiceByVetIsForbidden() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        long invoiceId = createInvoice(receptionistToken, "invoice-send-forbidden@example.com", "Findik", "VET-LIC-INV-013");
+
+        mockMvc.perform(patch("/api/invoices/" + invoiceId + "/send")
+                        .header("Authorization", "Bearer " + vetToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void sendUnknownInvoiceReturnsNotFound() throws Exception {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
 
@@ -295,6 +333,21 @@ class InvoiceControllerTest {
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[?(@.id == " + invoiceIdA + ")].status").value("PAID"))
                 .andExpect(jsonPath("$[?(@.id == " + invoiceIdB + ")].status").value("PAID"));
+    }
+
+    @Test
+    void bulkMarkPaidByVetIsForbidden() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
+        long invoiceId = createInvoice(receptionistToken, "invoice-bulk-forbidden@example.com", "Minnak", "VET-LIC-INV-014");
+
+        String bulkBody = objectMapper.writeValueAsString(new BulkMarkPaidPayload(List.of(invoiceId)));
+
+        mockMvc.perform(patch("/api/invoices/bulk-mark-paid")
+                        .header("Authorization", "Bearer " + vetToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bulkBody))
+                .andExpect(status().isForbidden());
     }
 
     @Test

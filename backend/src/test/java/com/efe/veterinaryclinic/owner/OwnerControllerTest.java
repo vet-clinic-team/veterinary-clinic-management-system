@@ -652,6 +652,65 @@ class OwnerControllerTest {
     }
 
     @Test
+    void getOwnerDetailListsInvoicesNewestFirst() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        long ownerId = createOwner(adminToken, "owner-invoice-order@example.com");
+
+        String petBody = objectMapper.writeValueAsString(
+                new PetPayload(ownerId, "Boncuk", "DOG", "Golden Retriever", null,
+                        "2022-03-15", "FEMALE", 24.5, null, null));
+        String petResponse = mockMvc.perform(post("/api/pets")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(petBody))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long petId = objectMapper.readTree(petResponse).get("id").asLong();
+
+        String vetBody = objectMapper.writeValueAsString(
+                new VetPayload("Dr. Owner Invoice Order", "Surgery", "VET-LIC-OWNER-DETAIL-002", "Mon-Fri 09:00-17:00"));
+        String vetResponse = mockMvc.perform(post("/api/vets")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(vetBody))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long vetId = objectMapper.readTree(vetResponse).get("id").asLong();
+
+        long invoiceIdFirst = createInvoiceForNewVisit(adminToken, petId, vetId, "2026-07-10T14:30:00");
+        long invoiceIdSecond = createInvoiceForNewVisit(adminToken, petId, vetId, "2026-07-11T09:00:00");
+
+        mockMvc.perform(get("/api/owners/" + ownerId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.invoices.length()").value(2))
+                .andExpect(jsonPath("$.invoices[0].id").value(invoiceIdSecond))
+                .andExpect(jsonPath("$.invoices[1].id").value(invoiceIdFirst));
+    }
+
+    private long createInvoiceForNewVisit(String token, long petId, long vetId, String scheduledAt) throws Exception {
+        String visitBody = objectMapper.writeValueAsString(new VisitPayload(petId, vetId, scheduledAt, "Checkup"));
+        String visitResponse = mockMvc.perform(post("/api/visits")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(visitBody))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long visitId = objectMapper.readTree(visitResponse).get("id").asLong();
+
+        String invoiceBody = objectMapper.writeValueAsString(new InvoicePayload(visitId, List.of(
+                new InvoiceItemPayload("Consultation", "CONSULTATION", 1, new BigDecimal("500.00")))));
+        String invoiceResponse = mockMvc.perform(post("/api/invoices")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invoiceBody))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        return objectMapper.readTree(invoiceResponse).get("id").asLong();
+    }
+
+    @Test
     void getUnknownOwnerDetailReturnsNotFound() throws Exception {
         String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
 

@@ -92,6 +92,20 @@ class AuthControllerTest {
     }
 
     @Test
+    void registerWithWeakPasswordReturnsValidationError() throws Exception {
+        String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
+        String registerBody = objectMapper.writeValueAsString(
+                new RegisterPayload("Weak Password", "weak.password@clinic.com", "alllowercase123", "VET"));
+
+        mockMvc.perform(post("/api/auth/register")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registerBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[0].field").value("password"));
+    }
+
+    @Test
     void loginWithWrongPasswordReturnsUnauthorized() throws Exception {
         String loginBody = objectMapper.writeValueAsString(
                 new LoginPayload(SEED_ADMIN_EMAIL, "wrong-password"));

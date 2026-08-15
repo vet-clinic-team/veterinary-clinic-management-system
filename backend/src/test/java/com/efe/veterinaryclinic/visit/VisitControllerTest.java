@@ -9,6 +9,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -735,6 +743,23 @@ class VisitControllerTest {
     }
 
     @Test
+    void createVisitExactlyFifteenMinutesFromExistingVisitForSameVetReturnsConflict() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "visit-overlap-boundary@example.com", "Boundary");
+        long vetId = createVet(receptionistToken, "VET-LIC-VISIT-039");
+        createVisit(receptionistToken, petId, vetId, "2026-11-10T10:00:00", "First appointment");
+
+        String boundaryBody = objectMapper.writeValueAsString(
+                new VisitPayload(petId, vetId, "2026-11-10T10:15:00", "Exactly fifteen minutes later"));
+
+        mockMvc.perform(post("/api/visits")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(boundaryBody))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
     void createVisitOutsideFifteenMinuteWindowForSameVetSucceeds() throws Exception {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "visit-no-overlap@example.com", "Rocky");
@@ -773,6 +798,74 @@ class VisitControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(sameSlotBody))
                 .andExpect(status().isCreated());
+    }
+
+    @Test
+    void reactivatingCancelledVisitIntoConflictingSlotReturnsConflict() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "visit-reactivate-overlap@example.com", "Ruby");
+        long vetId = createVet(receptionistToken, "VET-LIC-VISIT-038");
+        long firstVisitId = createVisit(receptionistToken, petId, vetId, "2026-11-06T10:00:00", "First appointment");
+
+        String cancelBody = objectMapper.writeValueAsString(new VisitStatusPayload("CANCELLED"));
+        mockMvc.perform(patch("/api/visits/" + firstVisitId + "/status")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(cancelBody))
+                .andExpect(status().isOk());
+
+        // A replacement visit takes the same slot now that the first one is cancelled and excluded.
+        createVisit(receptionistToken, petId, vetId, "2026-11-06T10:05:00", "Replacement appointment");
+
+        String reactivateBody = objectMapper.writeValueAsString(new VisitStatusPayload("SCHEDULED"));
+        mockMvc.perform(patch("/api/visits/" + firstVisitId + "/status")
+                        .header("Authorization", "Bearer " + receptionistToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(reactivateBody))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void concurrentVisitCreationForSameVetOnlyAllowsOneToSucceed() throws Exception {
+        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+        long petId = createPet(receptionistToken, "visit-concurrent-overlap@example.com", "Concurrent");
+        long vetId = createVet(receptionistToken, "VET-LIC-VISIT-040");
+
+        String bodyA = objectMapper.writeValueAsString(
+                new VisitPayload(petId, vetId, "2026-12-01T10:00:00", "Concurrent A"));
+        String bodyB = objectMapper.writeValueAsString(
+                new VisitPayload(petId, vetId, "2026-12-01T10:05:00", "Concurrent B"));
+
+        CyclicBarrier barrier = new CyclicBarrier(2);
+        Callable<Integer> createA = () -> {
+            barrier.await();
+            return mockMvc.perform(post("/api/visits")
+                            .header("Authorization", "Bearer " + receptionistToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(bodyA))
+                    .andReturn().getResponse().getStatus();
+        };
+        Callable<Integer> createB = () -> {
+            barrier.await();
+            return mockMvc.perform(post("/api/visits")
+                            .header("Authorization", "Bearer " + receptionistToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(bodyB))
+                    .andReturn().getResponse().getStatus();
+        };
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<Integer> futureA = executor.submit(createA);
+            Future<Integer> futureB = executor.submit(createB);
+
+            int statusA = futureA.get(10, TimeUnit.SECONDS);
+            int statusB = futureB.get(10, TimeUnit.SECONDS);
+
+            assertThat(List.of(statusA, statusB)).containsExactlyInAnyOrder(201, 409);
+        } finally {
+            executor.shutdown();
+        }
     }
 
     @Test
