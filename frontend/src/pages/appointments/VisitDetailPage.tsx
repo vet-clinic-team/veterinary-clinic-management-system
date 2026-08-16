@@ -346,13 +346,15 @@ const invoiceTotal =
       setSaving(true);
 
       await createInvoice({
-        visitId,
-        items: validItems,
-      });
+  visitId,
+  items: validItems,
+});
 
-      toast.success(
-        "Invoice created successfully."
-      );
+toast.success(
+  "Invoice created successfully."
+);
+
+navigate("/appointments");
     } catch (err: any) {
       console.error(err);
 

@@ -81,17 +81,17 @@ function InvoicesPage() {
       setLoading(true);
       setError("");
 
-      /*
-       * Backend'de search parametresi olmadığı için:
-       *
-       * Search varsa:
-       * 1. Backend'deki bütün sayfaları getiriyoruz.
-       * 2. Search işlemini frontend'de yapıyoruz.
-       * 3. Sonucu tekrar frontend'de 20'şerli sayfalıyoruz.
-       *
-       * Böylece örneğin aranan invoice 20. sayfadaysa
-       * search yine bulabiliyor.
-       */
+     /*
+ * Since the backend does not support a search parameter:
+ *
+ * If search is provided:
+ * 1. We fetch all pages from the backend.
+ * 2. We perform the search on the frontend.
+ * 3. We paginate the results into pages of 20 items on the frontend.
+ *
+ * This ensures that invoices can still be found even if the
+ * matching invoice is on a later page, such as page 20.
+ */
 
       if (search.trim()) {
         const firstResponse =
@@ -170,9 +170,8 @@ function InvoicesPage() {
           );
 
         /*
-         * Search sonucunu frontend'de
-         * 20'şerli sayfalıyoruz.
-         */
+ * We paginate the search results into pages of 20 items on the frontend.
+ */
         const frontendTotalPages =
           Math.ceil(
             filteredInvoices.length /
