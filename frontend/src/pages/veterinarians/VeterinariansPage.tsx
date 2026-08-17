@@ -26,6 +26,8 @@ import type {
 } from "../../types/veterinarian";
 
 function VeterinariansPage() {
+  const [initialLoading, setInitialLoading] =
+  useState(true);
   const [veterinarians, setVeterinarians] = useState<
     Veterinarian[]
   >([]);
@@ -44,13 +46,14 @@ function VeterinariansPage() {
 
   const [totalPages, setTotalPages] = useState(0);
 
-  const [loading, setLoading] = useState(false);
+ 
 
   const [sort, setSort] = useState("name,asc");
 
   const [error, setError] = useState("");
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const [
     isModalOpen,
@@ -71,17 +74,21 @@ function VeterinariansPage() {
     selectedPerformanceVet,
     setSelectedPerformanceVet,
   ] = useState<Veterinarian | null>(null);
+  useEffect(() => {
+  const timer = setTimeout(() => {
+    setDebouncedSearch(search);
+  }, 300);
+
+  return () => clearTimeout(timer);
+}, [search]);
 
   const fetchVeterinarians = async () => {
     try {
-      setLoading(true);
+      
       setError("");
 
-      /*
-       * Backend search desteklemediği için
-       * search varsa tüm backend sayfalarını getiriyoruz.
-       */
-      if (search.trim()) {
+      
+      if (debouncedSearch.trim()) { 
         const firstResponse = await getVets({
           page: 0,
           size,
@@ -98,9 +105,7 @@ function VeterinariansPage() {
           ...firstPage,
         ];
 
-        /*
-         * Diğer backend sayfalarını da getir.
-         */
+       
         if (totalBackendPages > 1) {
           const remainingPages =
             await Promise.all(
@@ -128,12 +133,9 @@ function VeterinariansPage() {
           );
         }
 
-        /*
-         * Search tüm veterinerler üzerinde
-         * frontend tarafında yapılır.
-         */
+       
         const keyword =
-          search.trim().toLowerCase();
+  debouncedSearch.trim().toLowerCase();
 
         const filtered =
           allVeterinarians.filter(
@@ -143,9 +145,7 @@ function VeterinariansPage() {
                 .includes(keyword)
           );
 
-        /*
-         * Search sonucuna göre frontend pagination.
-         */
+        
         const frontendTotalPages =
           Math.ceil(
             filtered.length / size
@@ -168,10 +168,7 @@ function VeterinariansPage() {
           )
         );
       } else {
-        /*
-         * Search yoksa mevcut backend
-         * pagination aynen kullanılır.
-         */
+       
         const response = await getVets({
           page,
           size,
@@ -193,8 +190,9 @@ function VeterinariansPage() {
         "Failed to load veterinarians."
       );
     } finally {
-      setLoading(false);
-    }
+ 
+  setInitialLoading(false);
+}
   };
 
   const fetchVetStats = async () => {
@@ -212,14 +210,15 @@ function VeterinariansPage() {
   };
 
   useEffect(() => {
-    fetchVeterinarians();
-
-    fetchVetStats();
-  }, [
-    page,
-    sort,
-    search,
-  ]);
+  fetchVeterinarians();
+}, [
+  page,
+  sort,
+  debouncedSearch,
+]);
+useEffect(() => {
+  fetchVetStats();
+}, []);
 
   const handleAddVeterinarian = () => {
     setSelectedVeterinarian(null);
@@ -384,7 +383,7 @@ function VeterinariansPage() {
         <div className="space-y-10">
           <div className="space-y-6">
 
-            {loading ? (
+            {initialLoading ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
                 Loading veterinarians...
               </div>

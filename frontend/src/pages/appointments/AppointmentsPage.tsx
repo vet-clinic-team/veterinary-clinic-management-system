@@ -55,6 +55,10 @@ function AppointmentsPage() {
   const [loading, setLoading] =
     useState(false);
 
+  const [initialLoading, setInitialLoading] =
+  useState(true);
+    
+
   const [error, setError] =
     useState("");
 
@@ -75,6 +79,8 @@ function AppointmentsPage() {
 
   const [searchTerm, setSearchTerm] =
     useState("");
+    const [debouncedSearchTerm, setDebouncedSearchTerm] =
+  useState("");
 
   const [sortOption, setSortOption] =
     useState("scheduledAsc");
@@ -90,6 +96,13 @@ function AppointmentsPage() {
 
   const [totalPages, setTotalPages] =
     useState(0);
+    useEffect(() => {
+  const timer = setTimeout(() => {
+    setDebouncedSearchTerm(searchTerm);
+  }, 300);
+
+  return () => clearTimeout(timer);
+}, [searchTerm]);
 
   const fetchVisits = async () => {
     try {
@@ -119,12 +132,8 @@ function AppointmentsPage() {
           sort = undefined;
       }
 
-      /*
-       * Backend'de search parametresi olmadığı için
-       * search varsa bütün visit sayfalarını getiriyoruz.
-       * Daha sonra aramayı frontend'de yapıyoruz.
-       */
-      if (searchTerm.trim()) {
+     
+      if (debouncedSearchTerm.trim()) {
         const firstResponse =
           await getVisits({
             page: 0,
@@ -139,9 +148,7 @@ function AppointmentsPage() {
         const totalBackendPages =
           firstResponse.totalPages;
 
-        /*
-         * Diğer backend sayfalarını da getir.
-         */
+        
         if (totalBackendPages > 1) {
           const remainingPages =
             await Promise.all(
@@ -170,14 +177,11 @@ function AppointmentsPage() {
         }
 
         const keyword =
-          searchTerm
+          debouncedSearchTerm
             .trim()
             .toLowerCase();
 
-        /*
-         * Search bütün appointment kayıtları
-         * üzerinde frontend'de yapılıyor.
-         */
+        
         const filtered =
           allVisits.filter(
             (appointment) => {
@@ -209,10 +213,7 @@ function AppointmentsPage() {
             }
           );
 
-        /*
-         * Search sonuçlarını frontend'de
-         * 20'şerli sayfalıyoruz.
-         */
+        
         const frontendTotalPages =
           Math.ceil(
             filtered.length / size
@@ -235,10 +236,7 @@ function AppointmentsPage() {
           )
         );
       } else {
-        /*
-         * Search yoksa mevcut backend
-         * pagination aynen çalışıyor.
-         */
+       
         const data =
           await getVisits({
             page,
@@ -262,6 +260,7 @@ function AppointmentsPage() {
       );
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
   };
 
@@ -309,13 +308,13 @@ function AppointmentsPage() {
   };
 
   useEffect(() => {
-    fetchVisits();
-  }, [
-    page,
-    size,
-    sortOption,
-    searchTerm,
-  ]);
+  fetchVisits();
+}, [
+  page,
+  size,
+  sortOption,
+  debouncedSearchTerm,
+]);
 
   useEffect(() => {
     fetchPets();
@@ -763,7 +762,7 @@ function AppointmentsPage() {
           </p>
         </div>
 
-        {loading ? (
+        {initialLoading ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
             Loading appointments...
           </div>

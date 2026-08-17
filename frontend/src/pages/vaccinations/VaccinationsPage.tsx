@@ -60,8 +60,9 @@ function VaccinationsPage() {
   const [totalPages, setTotalPages] =
     useState(0);
 
-  const [loading, setLoading] =
-    useState(true);
+ 
+    const [initialLoading, setInitialLoading] =
+  useState(true);
 
   const [error, setError] =
     useState("");
@@ -99,7 +100,7 @@ function VaccinationsPage() {
 
   const fetchVaccinations = async () => {
     try {
-      setLoading(true);
+      
       setError("");
 
       const data =
@@ -123,13 +124,14 @@ function VaccinationsPage() {
         "Failed to load vaccinations."
       );
     } finally {
-      setLoading(false);
+      
+      setInitialLoading(false);
     }
   };
 
   const fetchAllVaccinationsForSearch = async () => {
     try {
-      setLoading(true);
+      
       setError("");
 
       const firstPage =
@@ -171,7 +173,8 @@ function VaccinationsPage() {
         "Failed to load vaccinations."
       );
     } finally {
-      setLoading(false);
+      
+      setInitialLoading(false);
     }
   };
 
@@ -469,7 +472,7 @@ function VaccinationsPage() {
           </p>
         </div>
 
-        {loading ? (
+        {initialLoading ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
             Loading vaccinations...
           </div>

@@ -26,10 +26,54 @@ function formatMonth(month: string) {
 function MonthlyRevenueChart({
   data,
 }: MonthlyRevenueChartProps) {
+  const today = new Date();
+
+  const currentYear = today.getFullYear();
+
+  /*
+   * Backend returns the last 12 months.
+   * We keep the revenue values belonging to the current year
+   * and create missing future months with zero revenue.
+   */
+  const currentYearData = data.filter((item) => {
+    const [year] = item.month
+      .split("-")
+      .map(Number);
+
+    return year === currentYear;
+  });
+
+  const revenueByMonth = new Map(
+    currentYearData.map((item) => [
+      item.month,
+      item.revenue,
+    ])
+  );
+
+  const chartData = Array.from(
+    { length: 12 },
+    (_, index) => {
+      const monthNumber =
+        String(index + 1).padStart(2, "0");
+
+      const monthKey =
+        `${currentYear}-${monthNumber}`;
+
+      return {
+        month: monthKey,
+        revenue:
+          revenueByMonth.get(monthKey) ?? 0,
+      };
+    }
+  );
+
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer
+      width="100%"
+      height="100%"
+    >
       <BarChart
-        data={data}
+        data={chartData}
         margin={{
           top: 10,
           right: 15,
@@ -64,14 +108,12 @@ function MonthlyRevenueChart({
         />
 
         <Tooltip
-          formatter={(value) =>
-  [
-    typeof value === "number"
-      ? value.toFixed(2)
-      : "0.00",
-    "Revenue",
-  ]
-}
+          formatter={(value) => [
+            typeof value === "number"
+              ? value.toFixed(2)
+              : "0.00",
+            "Revenue",
+          ]}
           contentStyle={{
             borderRadius: "12px",
             border: "1px solid #e2e8f0",

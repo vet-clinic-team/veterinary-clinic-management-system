@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -8,7 +8,6 @@ import type {
 
 import type { Pet } from "../../types/pet";
 import type { Veterinarian } from "../../types/veterinarian";
-
 
 import {
   vaccinationSchema,
@@ -38,22 +37,6 @@ function VaccinationForm({
   onSubmit,
   onCancel,
 }: VaccinationFormProps) {
- 
-const [selectedPetAgeWeeks, setSelectedPetAgeWeeks] =
-  useState<number | null>(null);
-  const calculatePetAgeWeeks = (pet: Pet) => {
-  const birthDate = new Date(pet.birthDate);
-  const today = new Date();
-
-  const ageInMilliseconds =
-    today.getTime() - birthDate.getTime();
-
-  return Math.floor(
-    ageInMilliseconds /
-      (1000 * 60 * 60 * 24 * 7)
-  );
-};
-
   const {
     register,
     handleSubmit,
@@ -74,68 +57,45 @@ const [selectedPetAgeWeeks, setSelectedPetAgeWeeks] =
   // Load pets from API
 
   useEffect(() => {
-  if (initialValues) {
-    reset(initialValues);
-
-    const selectedPet = pets.find(
-      (pet) => pet.id === initialValues.petId
-    );
-
-    if (selectedPet) {
-      setSelectedPetAgeWeeks(
-        calculatePetAgeWeeks(selectedPet)
-      );
+    if (initialValues) {
+      reset(initialValues);
+      return;
     }
 
-    return;
-  }
-
-  if (selectedPetId) {
-    reset({
-      petId: selectedPetId,
-      vaccineType: "",
-      administeredAt: "",
-      lotNumber: "",
-      administeredBy: "",
-    });
-
-    const selectedPet = pets.find(
-      (pet) => pet.id === selectedPetId
-    );
-
-    if (selectedPet) {
-      setSelectedPetAgeWeeks(
-        calculatePetAgeWeeks(selectedPet)
-      );
+    if (selectedPetId) {
+      reset({
+        petId: selectedPetId,
+        vaccineType: "",
+        administeredAt: "",
+        lotNumber: "",
+        administeredBy: "",
+      });
     }
-  } else {
-    setSelectedPetAgeWeeks(null);
-  }
-}, [
-  initialValues,
-  selectedPetId,
-  pets,
-  reset,
-]);
+  }, [
+    initialValues,
+    selectedPetId,
+    reset,
+  ]);
 
   return (
-  <form
-    onSubmit={handleSubmit((values) => onSubmit(values))}
-    className="space-y-8"
-  >
-
+    <form
+      onSubmit={handleSubmit((values) =>
+        onSubmit(values)
+      )}
+      className="space-y-8"
+    >
       {/* Vaccination Information */}
 
-     <section
-  className="
-    rounded-2xl
-    border
-    border-slate-200
-    bg-white
-    p-6
-    shadow-sm
-  "
->
+      <section
+        className="
+          rounded-2xl
+          border
+          border-slate-200
+          bg-white
+          p-6
+          shadow-sm
+        "
+      >
         <div className="mb-6">
           <h2
             className="
@@ -166,197 +126,157 @@ const [selectedPetAgeWeeks, setSelectedPetAgeWeeks] =
             md:grid-cols-2
           "
         >
-         
-              {/* Pet */}
+          {/* Pet */}
 
-<div>
-  <label
-    className="
-      mb-2
-      block
-      text-sm
-      font-medium
-      text-slate-700
-    "
-  >
-    Pet
-  </label>
+          <div>
+            <label
+              className="
+                mb-2
+                block
+                text-sm
+                font-medium
+                text-slate-700
+              "
+            >
+              Pet
+            </label>
 
-  <select
-    {...register("petId", {
-      valueAsNumber: true,
-      onChange: (event) => {
-        const petId = Number(event.target.value);
+            <select
+              {...register("petId", {
+                valueAsNumber: true,
+              })}
+              disabled={hidePetSelection}
+              className="
+                w-full
+                rounded-xl
+                border
+                border-slate-300
+                bg-white
+                px-4
+                py-3
+                outline-none
+                transition
+                focus:border-blue-500
+                disabled:cursor-not-allowed
+                disabled:bg-slate-100
+                disabled:text-slate-600
+              "
+            >
+              <option value={0}>
+                Select Pet
+              </option>
 
-        const selectedPet = pets.find(
-          (pet) => pet.id === petId
-        );
+              {pets.map((pet) => (
+                <option
+                  key={pet.id}
+                  value={pet.id}
+                >
+                  {pet.name}
+                </option>
+              ))}
+            </select>
 
-        if (selectedPet) {
-          setSelectedPetAgeWeeks(
-            calculatePetAgeWeeks(selectedPet)
-          );
-        } else {
-          setSelectedPetAgeWeeks(null);
-        }
-      },
-    })}
-    disabled={hidePetSelection}
-    className="
-      w-full
-      rounded-xl
-      border
-      border-slate-300
-      bg-white
-      px-4
-      py-3
-      outline-none
-      transition
-      focus:border-blue-500
-      disabled:cursor-not-allowed
-      disabled:bg-slate-100
-      disabled:text-slate-600
-    "
-  >
-    <option value={0}>
-      Select Pet
-    </option>
+            {errors.petId && (
+              <p
+                className="
+                  mt-1
+                  text-sm
+                  text-red-500
+                "
+              >
+                {errors.petId.message}
+              </p>
+            )}
+          </div>
 
-    {pets.map((pet) => (
-      <option
-        key={pet.id}
-        value={pet.id}
-      >
-        {pet.name}
-      </option>
-    ))}
-  </select>
+          {/* Vaccine Type */}
 
-  {selectedPetAgeWeeks !== null && (
-    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-      <p className="font-medium text-amber-800">
-        Vaccination Requirement
-      </p>
+          <div>
+            <label
+              className="
+                mb-2
+                block
+                text-sm
+                font-medium
+                text-slate-700
+              "
+            >
+              Vaccine Type
+            </label>
 
-      {selectedPetAgeWeeks >= 52 ? (
-        <p className="mt-1 text-sm text-amber-700">
-          Annual rabies vaccination is required
-          for pets over 1 year old.
-        </p>
-      ) : (
-        <p className="mt-1 text-sm text-amber-700">
-          Puppy/kitten vaccination series:
-          vaccinations should be followed at
-          6, 8 and 12 weeks.
-        </p>
-      )}
-    </div>
-  )}
+            <input
+              type="text"
+              placeholder="Enter vaccine type"
+              {...register("vaccineType")}
+              className="
+                w-full
+                rounded-xl
+                border
+                border-slate-300
+                px-4
+                py-3
+                outline-none
+                transition
+                focus:border-blue-500
+              "
+            />
 
-  {errors.petId && (
-    <p
-      className="
-        mt-1
-        text-sm
-        text-red-500
-      "
-    >
-      {errors.petId.message}
-    </p>
-  )}
-</div>
+            {errors.vaccineType && (
+              <p
+                className="
+                  mt-1
+                  text-sm
+                  text-red-500
+                "
+              >
+                {errors.vaccineType.message}
+              </p>
+            )}
+          </div>
 
+          {/* Administered At */}
 
-  
+          <div>
+            <label
+              className="
+                mb-2
+                block
+                text-sm
+                font-medium
+                text-slate-700
+              "
+            >
+              Administered At
+            </label>
 
-{/* Vaccine Type */}
+            <input
+              type="datetime-local"
+              {...register("administeredAt")}
+              className="
+                w-full
+                rounded-xl
+                border
+                border-slate-300
+                px-4
+                py-3
+                outline-none
+                transition
+                focus:border-blue-500
+              "
+            />
 
-<div>
-  <label
-    className="
-      mb-2
-      block
-      text-sm
-      font-medium
-      text-slate-700
-    "
-  >
-    Vaccine Type
-  </label>
-
-  <input
-    type="text"
-    placeholder="Enter vaccine type"
-    {...register("vaccineType")}
-    className="
-      w-full
-      rounded-xl
-      border
-      border-slate-300
-      px-4
-      py-3
-      outline-none
-      transition
-      focus:border-blue-500
-    "
-  />
-
-  {errors.vaccineType && (
-    <p
-      className="
-        mt-1
-        text-sm
-        text-red-500
-      "
-    >
-      {errors.vaccineType.message}
-    </p>
-  )}
-</div>
-
-{/* Administered At */}
-
-<div>
-  <label
-    className="
-      mb-2
-      block
-      text-sm
-      font-medium
-      text-slate-700
-    "
-  >
-    Administered At
-  </label>
-
-  <input
-    type="datetime-local"
-    {...register("administeredAt")}
-    className="
-      w-full
-      rounded-xl
-      border
-      border-slate-300
-      px-4
-      py-3
-      outline-none
-      transition
-      focus:border-blue-500
-    "
-  />
-
-  {errors.administeredAt && (
-    <p
-      className="
-        mt-1
-        text-sm
-        text-red-500
-      "
-    >
-      {errors.administeredAt.message}
-    </p>
-  )}
-</div>
+            {errors.administeredAt && (
+              <p
+                className="
+                  mt-1
+                  text-sm
+                  text-red-500
+                "
+              >
+                {errors.administeredAt.message}
+              </p>
+            )}
+          </div>
 
           {/* Lot Number */}
 
@@ -404,7 +324,8 @@ const [selectedPetAgeWeeks, setSelectedPetAgeWeeks] =
           </div>
         </div>
       </section>
-            {/* Administration Information */}
+
+      {/* Administration Information */}
 
       <section
         className="
@@ -460,34 +381,34 @@ const [selectedPetAgeWeeks, setSelectedPetAgeWeeks] =
               Administered By
             </label>
 
-           <select
-  {...register("administeredBy")}
-  className="
-    w-full
-    rounded-xl
-    border
-    border-slate-300
-    bg-white
-    px-4
-    py-3
-    outline-none
-    transition
-    focus:border-blue-500
-  "
->
-  <option value="">
-    Select Veterinarian
-  </option>
+            <select
+              {...register("administeredBy")}
+              className="
+                w-full
+                rounded-xl
+                border
+                border-slate-300
+                bg-white
+                px-4
+                py-3
+                outline-none
+                transition
+                focus:border-blue-500
+              "
+            >
+              <option value="">
+                Select Veterinarian
+              </option>
 
-  {veterinarians.map((vet) => (
-    <option
-      key={vet.id}
-      value={vet.name}
-    >
-      {vet.name}
-    </option>
-  ))}
-</select>
+              {veterinarians.map((vet) => (
+                <option
+                  key={vet.id}
+                  value={vet.name}
+                >
+                  {vet.name}
+                </option>
+              ))}
+            </select>
 
             {errors.administeredBy && (
               <p
@@ -503,7 +424,8 @@ const [selectedPetAgeWeeks, setSelectedPetAgeWeeks] =
           </div>
         </div>
       </section>
-            {/* Actions */}
+
+      {/* Actions */}
 
       <div
         className="

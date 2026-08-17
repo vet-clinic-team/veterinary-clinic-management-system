@@ -35,13 +35,16 @@ function InvoicesPage() {
   const [stats, setStats] =
     useState<InvoiceStatsType | null>(null);
 
-  const [loading, setLoading] =
+  const [initialLoading, setInitialLoading] =
     useState(true);
 
   const [error, setError] =
     useState("");
 
   const [search, setSearch] =
+    useState("");
+
+  const [debouncedSearch, setDebouncedSearch] =
     useState("");
 
   const [status, setStatus] =
@@ -76,24 +79,34 @@ function InvoicesPage() {
   const [selectedInvoices, setSelectedInvoices] =
     useState<number[]>([]);
 
+  /*
+   * Delay search execution until the user
+   * stops typing for 300 milliseconds.
+   */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(0);
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [search]);
+
   const fetchInvoices = async () => {
     try {
-      setLoading(true);
       setError("");
 
-     /*
- * Since the backend does not support a search parameter:
- *
- * If search is provided:
- * 1. We fetch all pages from the backend.
- * 2. We perform the search on the frontend.
- * 3. We paginate the results into pages of 20 items on the frontend.
- *
- * This ensures that invoices can still be found even if the
- * matching invoice is on a later page, such as page 20.
- */
-
-      if (search.trim()) {
+      /*
+       * The backend does not support a search parameter.
+       *
+       * When a search value is provided:
+       * 1. Fetch all backend pages.
+       * 2. Filter invoices on the frontend.
+       * 3. Paginate the filtered results on the frontend.
+       */
+      if (debouncedSearch.trim()) {
         const firstResponse =
           await getInvoices({
             page: 0,
@@ -148,7 +161,7 @@ function InvoicesPage() {
         }
 
         const keyword =
-          search
+          debouncedSearch
             .trim()
             .toLowerCase();
 
@@ -170,8 +183,8 @@ function InvoicesPage() {
           );
 
         /*
- * We paginate the search results into pages of 20 items on the frontend.
- */
+         * Paginate search results on the frontend.
+         */
         const frontendTotalPages =
           Math.ceil(
             filteredInvoices.length /
@@ -196,8 +209,8 @@ function InvoicesPage() {
         );
       } else {
         /*
-         * Search yoksa backend'in
-         * normal pagination'ını kullanıyoruz.
+         * Without search, use the backend
+         * pagination normally.
          */
         const response =
           await getInvoices({
@@ -229,7 +242,11 @@ function InvoicesPage() {
         "Failed to load invoices."
       );
     } finally {
-      setLoading(false);
+      /*
+       * Only the initial page loading state
+       * is controlled here.
+       */
+      setInitialLoading(false);
     }
   };
 
@@ -247,6 +264,10 @@ function InvoicesPage() {
     }
   };
 
+  /*
+   * Fetch invoices when pagination,
+   * filters, sorting, or debounced search changes.
+   */
   useEffect(() => {
     fetchInvoices();
   }, [
@@ -255,9 +276,13 @@ function InvoicesPage() {
     from,
     to,
     sort,
-    search,
+    debouncedSearch,
   ]);
 
+  /*
+   * Load invoice statistics once when
+   * the page is initialized.
+   */
   useEffect(() => {
     fetchStats();
   }, []);
@@ -302,6 +327,7 @@ function InvoicesPage() {
         setIsFormOpen(false);
 
         await fetchInvoices();
+        await fetchStats();
       } catch (error: any) {
         console.error(error);
 
@@ -354,6 +380,7 @@ function InvoicesPage() {
         );
 
         await fetchInvoices();
+        await fetchStats();
       } catch (error: any) {
         console.error(error);
 
@@ -425,6 +452,7 @@ function InvoicesPage() {
         );
 
         await fetchInvoices();
+        await fetchStats();
       } catch (error) {
         console.error(
           "Failed to mark invoices as paid:",
@@ -524,8 +552,8 @@ function InvoicesPage() {
           </p>
         </div>
 
-        {/* Loading / Error / Content */}
-        {loading ? (
+        {/* Initial Loading / Error / Content */}
+        {initialLoading ? (
           <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
             Loading invoices...
           </div>
@@ -557,7 +585,6 @@ function InvoicesPage() {
                   value
                 ) => {
                   setSearch(value);
-                  setPage(0);
                 }}
                 onStatusChange={(
                   value
