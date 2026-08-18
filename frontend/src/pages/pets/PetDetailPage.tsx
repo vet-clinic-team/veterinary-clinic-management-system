@@ -31,6 +31,7 @@ import {
 
 import { getVets } from "../../services/veterinarianService";
 import { createVisit } from "../../services/visitService";
+
 import {
   createVaccination,
   updateVaccination,
@@ -50,10 +51,12 @@ import type {
 } from "../../types/owner";
 
 import type { Veterinarian } from "../../types/veterinarian";
+
 import type {
   Visit,
   CreateVisitRequest,
 } from "../../types/visit";
+
 import type {
   Vaccination,
   CreateVaccinationRequest,
@@ -64,7 +67,8 @@ function PetDetailPage() {
 
   const { id } = useParams<{ id: string }>();
 
-  const [pet, setPet] = useState<Pet | null>(null);
+  const [pet, setPet] =
+    useState<Pet | null>(null);
 
   const [owner, setOwner] =
     useState<OwnerDetail | null>(null);
@@ -85,16 +89,19 @@ function PetDetailPage() {
     isAppointmentModalOpen,
     setIsAppointmentModalOpen,
   ] = useState(false);
+
   const [
-  isEditPetModalOpen,
-  setIsEditPetModalOpen,
-] = useState(false);
+    isEditPetModalOpen,
+    setIsEditPetModalOpen,
+  ] = useState(false);
+
   const [selectedVisit, setSelectedVisit] =
-  useState<Visit | null>(null);
+    useState<Visit | null>(null);
+
   const [
-  selectedVaccination,
-  setSelectedVaccination,
-] = useState<Vaccination | null>(null);
+    selectedVaccination,
+    setSelectedVaccination,
+  ] = useState<Vaccination | null>(null);
 
   const [
     isVaccinationModalOpen,
@@ -144,10 +151,11 @@ function PetDetailPage() {
       );
 
       setIsEditOwnerModalOpen(false);
-    
 
       const updatedOwner =
-        await getOwnerById(owner.id);
+        await getOwnerById(
+          owner.id
+        );
 
       setOwner(updatedOwner);
     } catch (error: any) {
@@ -163,78 +171,82 @@ function PetDetailPage() {
       toast.error(message);
     }
   };
-    const handleEditPet = async (
-  values: CreatePetRequest
-) => {
-  if (!pet) {
-    return;
-  }
 
-  try {
-    await updatePet(
-      pet.id,
-      values
-    );
+  const handleEditPet = async (
+    values: CreatePetRequest
+  ) => {
+    if (!pet) {
+      return;
+    }
 
-    toast.success(
-      "Pet updated successfully."
-    );
+    try {
+      await updatePet(
+        pet.id,
+        values
+      );
 
-    setIsEditPetModalOpen(false);
+      toast.success(
+        "Pet updated successfully."
+      );
 
-    const updatedPet =
-      await getPetById(pet.id);
+      setIsEditPetModalOpen(false);
 
-    setPet(updatedPet);
-  } catch (error: any) {
-    console.error(
-      "Update pet error:",
-      error
-    );
+      const updatedPet =
+        await getPetById(
+          pet.id
+        );
 
-    const message =
-      error?.response?.data?.message ??
-      "Failed to update pet.";
+      setPet(updatedPet);
+    } catch (error: any) {
+      console.error(
+        "Update pet error:",
+        error
+      );
 
-    toast.error(message);
-  }
-};
+      const message =
+        error?.response?.data?.message ??
+        "Failed to update pet.";
+
+      toast.error(message);
+    }
+  };
+
   const handleEditVaccination = async (
-  values: CreateVaccinationRequest
-) => {
-  if (!selectedVaccination) {
-    return;
-  }
+    values: CreateVaccinationRequest
+  ) => {
+    if (!selectedVaccination) {
+      return;
+    }
 
-  try {
-    await updateVaccination(
-      selectedVaccination.id,
-      values
-    );
+    try {
+      await updateVaccination(
+        selectedVaccination.id,
+        values
+      );
 
-    toast.success(
-      "Vaccination updated successfully."
-    );
+      toast.success(
+        "Vaccination updated successfully."
+      );
 
-    setIsVaccinationModalOpen(false);
-    setSelectedVaccination(null);
+      setIsVaccinationModalOpen(false);
+      setSelectedVaccination(null);
 
-    setVaccinationRefreshKey(
-      (prev) => prev + 1
-    );
-  } catch (error: any) {
-    console.error(
-      "Update vaccination error:",
-      error
-    );
+      setVaccinationRefreshKey(
+        (prev) => prev + 1
+      );
+    } catch (error: any) {
+      console.error(
+        "Update vaccination error:",
+        error
+      );
 
-    const message =
-      error?.response?.data?.message ??
-      "Failed to update vaccination.";
+      const message =
+        error?.response?.data?.message ??
+        "Failed to update vaccination.";
 
-    toast.error(message);
-  }
-};
+      toast.error(message);
+    }
+  };
 
   const handleAssignOwner = async () => {
     if (!pet) {
@@ -250,19 +262,22 @@ function PetDetailPage() {
     }
 
     try {
-      await updatePet(pet.id, {
-        ownerId: selectedOwnerId,
-        name: pet.name,
-        species: pet.species,
-        breed: pet.breed,
-        speciesNote: pet.speciesNote,
-        birthDate: pet.birthDate,
-        sex: pet.sex,
-        weightKg: pet.weightKg,
-        allergies: pet.allergies,
-        chronicConditions:
-          pet.chronicConditions,
-      });
+      await updatePet(
+        pet.id,
+        {
+          ownerId: selectedOwnerId,
+          name: pet.name,
+          species: pet.species,
+          breed: pet.breed,
+          speciesNote: pet.speciesNote,
+          birthDate: pet.birthDate,
+          sex: pet.sex,
+          weightKg: pet.weightKg,
+          allergies: pet.allergies,
+          chronicConditions:
+            pet.chronicConditions,
+        }
+      );
 
       toast.success(
         "Owner assigned successfully."
@@ -271,7 +286,9 @@ function PetDetailPage() {
       setIsAssignOwnerModalOpen(false);
 
       const updatedPet =
-        await getPetById(pet.id);
+        await getPetById(
+          pet.id
+        );
 
       setPet(updatedPet);
 
@@ -305,7 +322,7 @@ function PetDetailPage() {
         setLoading(true);
 
         /*
-         * Load pet
+         * Load pet.
          */
         const petData =
           await getPetById(
@@ -315,7 +332,7 @@ function PetDetailPage() {
         setPet(petData);
 
         /*
-         * Load owner
+         * Load owner.
          *
          * If the owner no longer exists,
          * keep owner as null so the pet
@@ -367,7 +384,7 @@ function PetDetailPage() {
         );
 
         /*
-         * Load veterinarians
+         * Load veterinarians.
          */
         const vetsResponse =
           await getVets({
@@ -459,9 +476,13 @@ function PetDetailPage() {
 
               {/* Pet Information */}
               <PetInfoCard
-  pet={pet}
-  onEdit={() => setIsEditPetModalOpen(true)}
-/>
+                pet={pet}
+                onEdit={() =>
+                  setIsEditPetModalOpen(
+                    true
+                  )
+                }
+              />
 
               {/* Owner Information */}
               {owner ? (
@@ -508,9 +529,7 @@ function PetDetailPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setSelectedOwnerId(
-                          0
-                        );
+                        setSelectedOwnerId(0);
 
                         setIsAssignOwnerModalOpen(
                           true
@@ -536,36 +555,53 @@ function PetDetailPage() {
 
               {/* Visit History */}
               <PetVisitHistory
-  petId={pet.id}
-  refreshKey={visitRefreshKey}
-  onAddAppointment={() => {
-    setSelectedVisit(null);
-    setIsAppointmentModalOpen(true);
-  }}
-  onEditAppointment={(visit) => {
-    setSelectedVisit(visit);
-    setIsAppointmentModalOpen(true);
-  }}
-/>
+                petId={pet.id}
+                refreshKey={
+                  visitRefreshKey
+                }
+                onAddAppointment={() => {
+                  setSelectedVisit(null);
+                  setIsAppointmentModalOpen(
+                    true
+                  );
+                }}
+                onEditAppointment={(visit) => {
+                  setSelectedVisit(visit);
+                  setIsAppointmentModalOpen(
+                    true
+                  );
+                }}
+              />
 
               {/* Vaccination History */}
               <PetVaccinationHistory
-  petId={pet.id}
-  key={vaccinationRefreshKey}
-  onAddVaccination={() => {
-    setSelectedVaccination(null);
-    setIsVaccinationModalOpen(true);
-  }}
-  onEditVaccination={(vaccination) => {
-    setSelectedVaccination(vaccination);
-    setIsVaccinationModalOpen(true);
-  }}
-/>
+                petId={pet.id}
+                key={
+                  vaccinationRefreshKey
+                }
+                onAddVaccination={() => {
+                  setSelectedVaccination(null);
+                  setIsVaccinationModalOpen(
+                    true
+                  );
+                }}
+                onEditVaccination={(
+                  vaccination
+                ) => {
+                  setSelectedVaccination(
+                    vaccination
+                  );
 
-             {/* Invoice History */}
-<PetInvoiceHistory
-  petId={pet.id}
-/>
+                  setIsVaccinationModalOpen(
+                    true
+                  );
+                }}
+              />
+
+              {/* Invoice History */}
+              <PetInvoiceHistory
+                petId={pet.id}
+              />
 
               {/* Weight History */}
               <PetWeightHistory
@@ -577,12 +613,14 @@ function PetDetailPage() {
 
         {/* Appointment Modal */}
         <Modal
-          open={isAppointmentModalOpen}
-         title={
-  selectedVisit
-    ? "Edit Appointment"
-    : "Schedule Appointment"
-}
+          open={
+            isAppointmentModalOpen
+          }
+          title={
+            selectedVisit
+              ? "Edit Appointment"
+              : "Schedule Appointment"
+          }
           onClose={() =>
             setIsAppointmentModalOpen(
               false
@@ -619,13 +657,19 @@ function PetDetailPage() {
                     (prev) =>
                       prev + 1
                   );
-                } catch (error) {
+                } catch (error: any) {
                   console.error(
+                    "Create appointment error:",
                     error
                   );
 
+                  const message =
+                    error?.response?.data
+                      ?.message ??
+                    "Failed to create appointment.";
+
                   toast.error(
-                    "Failed to create appointment."
+                    message
                   );
                 }
               }}
@@ -639,13 +683,15 @@ function PetDetailPage() {
         </Modal>
 
         {/* Vaccination Modal */}
-       <Modal
-  open={isVaccinationModalOpen}
-  title={
-    selectedVaccination
-      ? "Edit Vaccination"
-      : "Add Vaccination"
-  }
+        <Modal
+          open={
+            isVaccinationModalOpen
+          }
+          title={
+            selectedVaccination
+              ? "Edit Vaccination"
+              : "Add Vaccination"
+          }
           onClose={() =>
             setIsVaccinationModalOpen(
               false
@@ -654,69 +700,85 @@ function PetDetailPage() {
         >
           {pet && (
             <VaccinationForm
-  pets={pets}
-  veterinarians={veterinarians}
-  selectedPetId={pet.id}
-  hidePetSelection
-  mode={
-    selectedVaccination
-      ? "edit"
-      : "create"
-  }
-  initialValues={
-    selectedVaccination
-      ? {
-          petId: selectedVaccination.petId,
-          vaccineType:
-            selectedVaccination.vaccineType,
-          administeredAt:
-            selectedVaccination.administeredAt,
-          lotNumber:
-            selectedVaccination.lotNumber,
-          administeredBy:
-            selectedVaccination.administeredBy,
-        }
-      : undefined
-  }
-  onSubmit={
-    selectedVaccination
-      ? handleEditVaccination
-      : async (
-          values: CreateVaccinationRequest
-        ) => {
-          try {
-            await createVaccination(
-              values
-            );
+              pets={pets}
+              veterinarians={
+                veterinarians
+              }
+              selectedPetId={
+                pet.id
+              }
+              hidePetSelection
+              mode={
+                selectedVaccination
+                  ? "edit"
+                  : "create"
+              }
+              initialValues={
+                selectedVaccination
+                  ? {
+                      petId:
+                        selectedVaccination.petId,
+                      vaccineType:
+                        selectedVaccination.vaccineType,
+                      administeredAt:
+                        selectedVaccination.administeredAt,
+                      lotNumber:
+                        selectedVaccination.lotNumber,
+                      administeredBy:
+                        selectedVaccination.administeredBy,
+                    }
+                  : undefined
+              }
+              onSubmit={
+                selectedVaccination
+                  ? handleEditVaccination
+                  : async (
+                      values: CreateVaccinationRequest
+                    ) => {
+                      try {
+                        await createVaccination(
+                          values
+                        );
 
-            toast.success(
-              "Vaccination added successfully."
-            );
+                        toast.success(
+                          "Vaccination added successfully."
+                        );
 
-            setIsVaccinationModalOpen(
-              false
-            );
+                        setIsVaccinationModalOpen(
+                          false
+                        );
 
-            setVaccinationRefreshKey(
-              (prev) => prev + 1
-            );
-          } catch (error) {
-            console.error(
-              "Create vaccination error:",
-              error
-            );
+                        setVaccinationRefreshKey(
+                          (prev) =>
+                            prev + 1
+                        );
+                      } catch (error: any) {
+                        console.error(
+                          "Create vaccination error:",
+                          error
+                        );
 
-            toast.error(
-              "Failed to add vaccination."
-            );
-          }
-        }
-  }
-  onCancel={() => {
-    setIsVaccinationModalOpen(false);
-    setSelectedVaccination(null);
-  }}
-/>
+                        const message =
+                          error?.response?.data
+                            ?.message ??
+                          "Failed to add vaccination.";
+
+                        toast.error(
+                          message
+                        );
+                      }
+                    }
+              }
+              onCancel={() => {
+                setIsVaccinationModalOpen(
+                  false
+                );
+
+                setSelectedVaccination(
+                  null
+                );
+              }}
+            />
           )}
         </Modal>
 
@@ -882,37 +944,55 @@ function PetDetailPage() {
             </div>
           </div>
         </Modal>
+
         {/* Edit Pet Modal */}
-<Modal
-  open={isEditPetModalOpen}
-  title="Edit Pet"
-  onClose={() =>
-    setIsEditPetModalOpen(false)
-  }
->
-  {pet && (
-    <PetForm
-      owners={owners}
-      initialValues={{
-        ownerId: pet.ownerId,
-        name: pet.name,
-        species: pet.species,
-        breed: pet.breed,
-        speciesNote: pet.speciesNote,
-        birthDate: pet.birthDate,
-        sex: pet.sex,
-        weightKg: pet.weightKg,
-        allergies: pet.allergies,
-        chronicConditions:
-          pet.chronicConditions,
-      }}
-      onSubmit={handleEditPet}
-      onCancel={() =>
-        setIsEditPetModalOpen(false)
-      }
-    />
-  )}
-</Modal>
+        <Modal
+          open={
+            isEditPetModalOpen
+          }
+          title="Edit Pet"
+          onClose={() =>
+            setIsEditPetModalOpen(
+              false
+            )
+          }
+        >
+          {pet && (
+            <PetForm
+              owners={owners}
+              initialValues={{
+                ownerId:
+                  pet.ownerId,
+                name:
+                  pet.name,
+                species:
+                  pet.species,
+                breed:
+                  pet.breed,
+                speciesNote:
+                  pet.speciesNote,
+                birthDate:
+                  pet.birthDate,
+                sex:
+                  pet.sex,
+                weightKg:
+                  pet.weightKg,
+                allergies:
+                  pet.allergies,
+                chronicConditions:
+                  pet.chronicConditions,
+              }}
+              onSubmit={
+                handleEditPet
+              }
+              onCancel={() =>
+                setIsEditPetModalOpen(
+                  false
+                )
+              }
+            />
+          )}
+        </Modal>
       </PageContainer>
     </DashboardLayout>
   );

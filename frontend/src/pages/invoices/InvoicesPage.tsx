@@ -78,6 +78,11 @@ function InvoicesPage() {
 
   const [selectedInvoices, setSelectedInvoices] =
     useState<number[]>([]);
+    const [isMarkPaidModalOpen, setIsMarkPaidModalOpen] =
+  useState(false);
+
+const [invoiceToMarkPaid, setInvoiceToMarkPaid] =
+  useState<Invoice | null>(null);
 
   /*
    * Delay search execution until the user
@@ -366,32 +371,43 @@ function InvoicesPage() {
       }
     };
 
-  const handleMarkPaid =
-    async (
-      invoice: Invoice
-    ) => {
-      try {
-        await markInvoicePaid(
-          invoice.id
-        );
+  const handleMarkPaid = (
+  invoice: Invoice
+) => {
+  setInvoiceToMarkPaid(invoice);
+  setIsMarkPaidModalOpen(true);
+};
 
-        toast.success(
-          "Invoice marked as paid."
-        );
+const confirmMarkPaid = async () => {
+  if (!invoiceToMarkPaid) {
+    return;
+  }
 
-        await fetchInvoices();
-        await fetchStats();
-      } catch (error: any) {
-        console.error(error);
+  try {
+    await markInvoicePaid(
+      invoiceToMarkPaid.id
+    );
 
-        const message =
-          error?.response?.data
-            ?.message ??
-          "Failed to mark invoice as paid.";
+    toast.success(
+      "Invoice marked as paid."
+    );
 
-        toast.error(message);
-      }
-    };
+    setIsMarkPaidModalOpen(false);
+    setInvoiceToMarkPaid(null);
+
+    await fetchInvoices();
+    await fetchStats();
+  } catch (error: any) {
+    console.error(error);
+
+    const message =
+      error?.response?.data
+        ?.message ??
+      "Failed to mark invoice as paid.";
+
+    toast.error(message);
+  }
+};
 
   const handleSelectInvoice = (
     invoiceId: number,
@@ -453,15 +469,18 @@ function InvoicesPage() {
 
         await fetchInvoices();
         await fetchStats();
-      } catch (error) {
+      } catch (error: any) {
         console.error(
           "Failed to mark invoices as paid:",
           error
         );
 
-        toast.error(
-          "Failed to mark invoices as paid."
-        );
+        const message =
+          error?.response?.data
+            ?.message ??
+          "Failed to mark invoices as paid.";
+
+        toast.error(message);
       }
     };
 
@@ -750,6 +769,76 @@ function InvoicesPage() {
             handleCloseDetails
           }
         />
+        {/* Mark Invoice as Paid Confirmation */}
+<Modal
+  open={isMarkPaidModalOpen}
+  title="Mark Invoice as Paid"
+  onClose={() => {
+    setIsMarkPaidModalOpen(false);
+    setInvoiceToMarkPaid(null);
+  }}
+>
+  <div className="space-y-6">
+    <div>
+      <h3 className="text-lg font-semibold text-slate-900">
+        Confirm payment
+      </h3>
+
+      <p className="mt-2 text-sm text-slate-600">
+        Are you sure you want to mark invoice{" "}
+        <span className="font-semibold text-slate-900">
+          #{invoiceToMarkPaid?.id}
+        </span>{" "}
+        as paid?
+      </p>
+
+      <p className="mt-2 text-sm text-slate-500">
+        This action will change the invoice status
+        to PAID.
+      </p>
+    </div>
+
+    <div className="flex justify-end gap-3">
+      <button
+        type="button"
+        onClick={() => {
+          setIsMarkPaidModalOpen(false);
+          setInvoiceToMarkPaid(null);
+        }}
+        className="
+          rounded-xl
+          border
+          border-slate-300
+          px-5
+          py-2.5
+          font-medium
+          text-slate-600
+          transition
+          hover:bg-slate-100
+        "
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        onClick={confirmMarkPaid}
+        className="
+          rounded-xl
+          bg-emerald-600
+          px-5
+          py-2.5
+          font-medium
+          text-white
+          transition
+          hover:bg-emerald-700
+        "
+      >
+        Mark as Paid
+      </button>
+    </div>
+  </div>
+</Modal>
 
       </PageContainer>
     </DashboardLayout>

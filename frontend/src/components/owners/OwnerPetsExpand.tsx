@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PawPrint } from "lucide-react";
 
 import { getOwnerById } from "../../services/ownerService";
@@ -11,22 +12,30 @@ type OwnerPetsExpandProps = {
 function OwnerPetsExpand({
   ownerId,
 }: OwnerPetsExpandProps) {
-  const [ownerPets, setOwnerPets] = useState<Pet[]>([]);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  const [ownerPets, setOwnerPets] =
+    useState<Pet[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
 
   useEffect(() => {
     const fetchOwner = async () => {
       try {
-  setLoading(true);
+        setLoading(true);
 
-  const owner = await getOwnerById(ownerId);
+        const owner =
+          await getOwnerById(ownerId);
 
-  setOwnerPets(owner.pets);
-} catch {
-  setOwnerPets([]);
-} finally {
-  setLoading(false);
-}
+        setOwnerPets(
+          owner.pets
+        );
+      } catch {
+        setOwnerPets([]);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchOwner();
@@ -53,7 +62,21 @@ function OwnerPetsExpand({
       {ownerPets.map((pet) => (
         <div
           key={pet.id}
-          className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+          onClick={() =>
+            navigate(`/pets/${pet.id}`)
+          }
+          className="
+            cursor-pointer
+            rounded-xl
+            border
+            border-slate-200
+            bg-white
+            p-5
+            shadow-sm
+            transition
+            hover:bg-slate-50
+            hover:shadow-md
+          "
         >
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">

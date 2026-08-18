@@ -11,13 +11,12 @@ import UpdateSupportStatusDialog from "../../components/support/UpdateSupportSta
 
 import Modal from "../../components/ui/Modal";
 
-
-
 import type {
   SupportRequest,
   CreateSupportRequest,
   SupportRequestStatus,
 } from "../../types/support";
+
 import {
   getSupportRequests,
   getSupportRequestById,
@@ -26,290 +25,362 @@ import {
 } from "../../services/supportService";
 
 function SupportPage() {
-    const [requests, setRequests] =
-  useState<SupportRequest[]>([]);
+  const [requests, setRequests] =
+    useState<SupportRequest[]>([]);
 
-const [loading, setLoading] =
-  useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
-const [error, setError] =
-  useState("");
+  const [error, setError] =
+    useState("");
 
-const [isModalOpen, setIsModalOpen] =
-  useState(false);
+  const [isModalOpen, setIsModalOpen] =
+    useState(false);
 
-const [selectedRequest, setSelectedRequest] =
-  useState<SupportRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] =
+    useState<SupportRequest | null>(null);
+
   const [statusRequest, setStatusRequest] =
-  useState<SupportRequest | null>(null);
+    useState<SupportRequest | null>(null);
 
-const [statusFilter, setStatusFilter] =
-  useState<SupportRequestStatus | undefined>();
+  const [statusFilter, setStatusFilter] =
+    useState<SupportRequestStatus | undefined>();
 
-const [page, setPage] =
-  useState(0);
+  const [page, setPage] =
+    useState(0);
 
-const [size] =
-  useState(20);
+  const [size] =
+    useState(20);
 
-const [totalPages, setTotalPages] =
-  useState(0);
+  const [totalPages, setTotalPages] =
+    useState(0);
+
   const fetchSupportRequests = async () => {
+    try {
+      setLoading(true);
 
-  try {
+      setError("");
 
-    setLoading(true);
+      const data =
+        await getSupportRequests({
+          page,
+          size,
+          status:
+            statusFilter || undefined,
+        });
 
+      setRequests(
+        data.content
+      );
+
+      setTotalPages(
+        data.totalPages
+      );
+    } catch (error: any) {
+      console.error(
+        "Load support requests error:",
+        error
+      );
+
+      const message =
+        error?.response?.data?.message ??
+        "Failed to load support requests.";
+
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSupportRequests();
+  }, [
+    page,
+    size,
+    statusFilter,
+  ]);
+
+  const handleAdd = () => {
     setError("");
 
-    const data =
-      await getSupportRequests({
+    setIsModalOpen(true);
+  };
 
-        page,
+  const handleView = async (
+    request: SupportRequest
+  ) => {
+    try {
+      const detail =
+        await getSupportRequestById(
+          request.id
+        );
 
-        size,
+      setSelectedRequest(
+        detail
+      );
+    } catch (error: any) {
+      console.error(
+        "Failed to load support request details:",
+        error
+      );
 
-        status:
-          statusFilter || undefined,
+      const message =
+        error?.response?.data?.message ??
+        "Failed to load support request details.";
 
-      });
+      setError(message);
+    }
+  };
 
-    setRequests(data.content);
-
-    setTotalPages(data.totalPages);
-
-  } catch (error) {
-
-    console.error(error);
-
-    setError(
-      "Failed to load support requests."
+  const handleUpdateStatus = (
+    request: SupportRequest
+  ) => {
+    setStatusRequest(
+      request
     );
+  };
 
-  } finally {
+  const handleSubmit = async (
+    values: CreateSupportRequest
+  ) => {
+    try {
+      await createSupportRequest(
+        values
+      );
 
-    setLoading(false);
+      await fetchSupportRequests();
 
-  }
+      setIsModalOpen(false);
+    } catch (error: any) {
+      console.error(
+        "Create support request error:",
+        error
+      );
 
-};
-useEffect(() => {
+      const message =
+        error?.response?.data?.message ??
+        "Failed to create support request.";
 
-  fetchSupportRequests();
+      setError(message);
+    }
+  };
 
-}, [
+  const confirmStatusUpdate = async (
+    values: {
+      status: SupportRequestStatus;
+      adminResponse: string;
+    }
+  ) => {
+    if (!statusRequest) {
+      return;
+    }
 
-  page,
+    try {
+      await updateSupportRequestStatus(
+        statusRequest.id,
+        values
+      );
 
-  size,
+      setStatusRequest(null);
 
-  statusFilter,
+      await fetchSupportRequests();
+    } catch (error: any) {
+      console.error(
+        "Update support request error:",
+        error
+      );
 
-]);
-const handleAdd = () => {
+      const message =
+        error?.response?.data?.message ??
+        "Failed to update support request.";
 
-  setIsModalOpen(true);
+      setError(message);
+    }
+  };
 
-};
-const handleView = async (
-  request: SupportRequest
-) => {
-  try {
-    const detail =
-      await getSupportRequestById(request.id);
-
-    setSelectedRequest(detail);
-  } catch (error) {
-    console.error(
-      "Failed to load support request details:",
-      error
-    );
-
-    setError(
-      "Failed to load support request details."
-    );
-  }
-};
-const handleUpdateStatus = (
-  request: SupportRequest
-) => {
-  setStatusRequest(request);
-};
-const handleSubmit = async (
-  values: CreateSupportRequest
-) => {
-  try {
-    await createSupportRequest(values);
-
-    await fetchSupportRequests();
-
+  const handleCloseModal = () => {
     setIsModalOpen(false);
 
-  } catch (error) {
+    setSelectedRequest(null);
+  };
 
-    console.error(
-      "Create support request error:",
-      error
+  const handleStatusFilter = (
+    value: SupportRequestStatus | ""
+  ) => {
+    setStatusFilter(
+      value || undefined
     );
 
-    setError("Failed to create support request.");
-  }
-};
-const confirmStatusUpdate = async (values: {
-  status: SupportRequestStatus;
-  adminResponse: string;
-}) => {
-  if (!statusRequest) return;
+    setPage(0);
+  };
 
-  try {
-    await updateSupportRequestStatus(
-      statusRequest.id,
-      values
-    );
+  return (
+    <DashboardLayout>
+      <div className="space-y-8">
 
-    setStatusRequest(null);
+        <div>
+          <h1
+            className="
+              text-3xl
+              font-bold
+              text-slate-900
+            "
+          >
+            Support Requests
+          </h1>
 
-    fetchSupportRequests();
-  } catch (error) {
-    console.error(error);
+          <p
+            className="
+              mt-2
+              text-slate-500
+            "
+          >
+            Create and track your support requests.
+          </p>
+        </div>
 
-    setError(
-      "Failed to update support request."
-    );
-  }
-};
+        {loading ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
+            Loading support requests...
+          </div>
+        ) : error ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
+            {error}
+          </div>
+        ) : (
+          <>
+            <SupportStats
+              supports={
+                requests
+              }
+            />
 
+            <SupportToolbar
+              onAdd={
+                handleAdd
+              }
+              onStatusChange={
+                handleStatusFilter
+              }
+            />
 
-const handleCloseModal = () => {
-  setIsModalOpen(false);
-  setSelectedRequest(null);
-};
-const handleStatusFilter = (
-  value: SupportRequestStatus | ""
-) => {
+            <SupportTable
+              supports={
+                requests
+              }
+              onView={
+                handleView
+              }
+              onUpdateStatus={
+                handleUpdateStatus
+              }
+            />
 
-  setStatusFilter(
-    value || undefined
-  );
+            {totalPages > 1 && (
+              <div className="mt-6 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPage(
+                      (prev) =>
+                        prev - 1
+                    )
+                  }
+                  disabled={
+                    page === 0
+                  }
+                  className="rounded-lg border px-4 py-2 disabled:opacity-50"
+                >
+                  Previous
+                </button>
 
-  setPage(0);
+                <span className="text-sm text-slate-600">
+                  Page{" "}
+                  {page + 1}{" "}
+                  of{" "}
+                  {totalPages}
+                </span>
 
-};
-return (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPage(
+                      (prev) =>
+                        prev + 1
+                    )
+                  }
+                  disabled={
+                    page + 1 >=
+                    totalPages
+                  }
+                  className="rounded-lg border px-4 py-2 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
 
-  <DashboardLayout>
+            <Modal
+              open={
+                isModalOpen
+              }
+              title="New Support Request"
+              onClose={
+                handleCloseModal
+              }
+            >
+              <SupportForm
+                onSubmit={
+                  handleSubmit
+                }
+                onCancel={
+                  handleCloseModal
+                }
+              />
+            </Modal>
 
-    <div className="space-y-8">
+            <SupportDetailDialog
+              open={
+                !!selectedRequest
+              }
+              support={
+                selectedRequest
+              }
+              onClose={() =>
+                setSelectedRequest(
+                  null
+                )
+              }
+            />
 
-      <div>
-
-        <h1
-          className="
-            text-3xl
-            font-bold
-            text-slate-900
-          "
-        >
-          Support Requests
-        </h1>
-
-        <p
-          className="
-            mt-2
-            text-slate-500
-          "
-        >
-          Create and track your support requests.
-        </p>
-
+            <UpdateSupportStatusDialog
+              open={
+                statusRequest !== null
+              }
+              initialStatus={
+                statusRequest?.status ??
+                "OPEN"
+              }
+              initialAdminResponse={
+                statusRequest?.adminResponse
+              }
+              isLoading={
+                loading
+              }
+              onSubmit={
+                confirmStatusUpdate
+              }
+              onCancel={() =>
+                setStatusRequest(
+                  null
+                )
+              }
+            />
+          </>
+        )}
       </div>
-
-     
-      {loading ? (
-  <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">
-    Loading support requests...
-  </div>
-) : error ? (
-  <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
-    {error}
-  </div>
-) : (
-  <>
-  <SupportStats
-  supports={requests}
-/>
-    
-    <SupportToolbar
-      onAdd={handleAdd}
-      onStatusChange={handleStatusFilter}
-    />
-
-    <SupportTable
-      supports={requests}
-      onView={handleView}
-      onUpdateStatus={handleUpdateStatus}
-    />
-
-   {totalPages > 1 && (
-  <div className="mt-6 flex items-center justify-between">
-    <button
-      type="button"
-      onClick={() => setPage((prev) => prev - 1)}
-      disabled={page === 0}
-      className="rounded-lg border px-4 py-2 disabled:opacity-50"
-    >
-      Previous
-    </button>
-
-    <span className="text-sm text-slate-600">
-      Page {page + 1} of {totalPages}
-    </span>
-
-    <button
-      type="button"
-      onClick={() => setPage((prev) => prev + 1)}
-      disabled={page + 1 >= totalPages}
-      className="rounded-lg border px-4 py-2 disabled:opacity-50"
-    >
-      Next
-    </button>
-  </div>
-)}
-
-    <Modal
-      open={isModalOpen}
-      title="New Support Request"
-      onClose={handleCloseModal}
-    >
-      <SupportForm
-        onSubmit={handleSubmit}
-        onCancel={handleCloseModal}
-      />
-    </Modal>
-
-    <SupportDetailDialog
-      open={!!selectedRequest}
-      support={selectedRequest}
-      onClose={() => setSelectedRequest(null)}
-    />
-
-       <UpdateSupportStatusDialog
-      open={statusRequest !== null}
-      initialStatus={statusRequest?.status ?? "OPEN"}
-      initialAdminResponse={statusRequest?.adminResponse}
-      isLoading={loading}
-      onSubmit={confirmStatusUpdate}
-      onCancel={() => setStatusRequest(null)}
-    />
-  </>
-)}
-
-    </div>
-
-  </DashboardLayout>
-
-);
-
+    </DashboardLayout>
+  );
 }
 
 export default SupportPage;

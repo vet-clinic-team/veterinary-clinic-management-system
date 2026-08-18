@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -38,6 +38,7 @@ function AppointmentForm({
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<VisitFormData>({
     resolver: zodResolver(visitSchema),
@@ -49,159 +50,435 @@ function AppointmentForm({
     },
   });
 
- useEffect(() => {
-  if (initialValues) {
-    reset({
-      ...initialValues,
-      scheduledAt: initialValues.scheduledAt
-        ? initialValues.scheduledAt.substring(0, 16)
-        : "",
-    });
+  const [appointmentDate, setAppointmentDate] =
+    useState("");
 
-    return;
-  }
+  const [appointmentHour, setAppointmentHour] =
+    useState("");
 
-  if (selectedPetId) {
-    reset({
-      petId: selectedPetId,
-      vetId: 0,
-      scheduledAt: "",
-      chiefComplaint: "",
+  const [appointmentMinute, setAppointmentMinute] =
+    useState("");
+
+  const hours = Array.from(
+    { length: 24 },
+    (_, index) =>
+      String(index).padStart(2, "0")
+  );
+
+  const minutes = [
+    "00",
+    "15",
+    "30",
+    "45",
+  ];
+
+  useEffect(() => {
+    if (initialValues) {
+      const scheduledAt =
+        initialValues.scheduledAt || "";
+
+      const date =
+        scheduledAt.substring(0, 10);
+
+      const time =
+        scheduledAt.substring(11, 16);
+
+      const hour =
+        time ? time.substring(0, 2) : "";
+
+      const minute =
+        time ? time.substring(3, 5) : "";
+
+      setAppointmentDate(date);
+      setAppointmentHour(hour);
+      setAppointmentMinute(
+        minutes.includes(minute)
+          ? minute
+          : ""
+      );
+
+      reset({
+        ...initialValues,
+        scheduledAt,
+      });
+
+      return;
+    }
+
+    if (selectedPetId) {
+      setAppointmentDate("");
+      setAppointmentHour("");
+      setAppointmentMinute("");
+
+      reset({
+        petId: selectedPetId,
+        vetId: 0,
+        scheduledAt: "",
+        chiefComplaint: "",
+      });
+    }
+  }, [
+    initialValues,
+    selectedPetId,
+    reset,
+  ]);
+
+  const handleDateChange = (
+    value: string
+  ) => {
+    setAppointmentDate(value);
+
+    updateScheduledAt(
+      value,
+      appointmentHour,
+      appointmentMinute
+    );
+  };
+
+  const handleHourChange = (
+    value: string
+  ) => {
+    setAppointmentHour(value);
+
+    updateScheduledAt(
+      appointmentDate,
+      value,
+      appointmentMinute
+    );
+  };
+
+  const handleMinuteChange = (
+    value: string
+  ) => {
+    setAppointmentMinute(value);
+
+    updateScheduledAt(
+      appointmentDate,
+      appointmentHour,
+      value
+    );
+  };
+
+  const updateScheduledAt = (
+    date: string,
+    hour: string,
+    minute: string
+  ) => {
+    if (!date || !hour || !minute) {
+      setValue(
+        "scheduledAt",
+        ""
+      );
+
+      return;
+    }
+
+    setValue(
+      "scheduledAt",
+      `${date}T${hour}:${minute}`
+    );
+  };
+
+  const submitForm = (
+    values: VisitFormData
+  ) => {
+    if (
+      !appointmentDate ||
+      !appointmentHour ||
+      !appointmentMinute
+    ) {
+      return;
+    }
+
+    const scheduledAt =
+      `${appointmentDate}T${appointmentHour}:${appointmentMinute}`;
+
+    onSubmit({
+      ...values,
+      scheduledAt,
     });
-  }
-}, [
-  initialValues,
-  selectedPetId,
-  reset,
-]);
+  };
 
   return (
     <form
-      onSubmit={handleSubmit((values) => onSubmit(values))}
+      onSubmit={handleSubmit(submitForm)}
       className="space-y-6"
     >
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        
 
-        
-  {!hidePetSelection && (
-    <div>
-      <label className="mb-2 block text-sm font-medium text-slate-700">
-        Pet
-      </label>
+        {/* Pet */}
+        {!hidePetSelection && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              Pet
+            </label>
 
-      <select
-        {...register("petId", {
-          valueAsNumber: true,
-        })}
-        className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-      >
-        <option value={0}>Select Pet</option>
+            <select
+              {...register("petId", {
+                valueAsNumber: true,
+              })}
+              className="
+                w-full
+                rounded-xl
+                border
+                border-slate-300
+                px-4
+                py-3
+                outline-none
+                transition
+                focus:border-blue-500
+              "
+            >
+              <option value={0}>
+                Select Pet
+              </option>
 
-        {pets.map((pet) => (
-          <option
-            key={pet.id}
-            value={pet.id}
+              {pets.map((pet) => (
+                <option
+                  key={pet.id}
+                  value={pet.id}
+                >
+                  {pet.name}
+                </option>
+              ))}
+            </select>
+
+            {errors.petId && (
+              <p className="mt-1 text-sm text-red-500">
+                {errors.petId.message}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Veterinarian */}
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Veterinarian
+          </label>
+
+          <select
+            {...register("vetId", {
+              valueAsNumber: true,
+            })}
+            className="
+              w-full
+              rounded-xl
+              border
+              border-slate-300
+              px-4
+              py-3
+              outline-none
+              transition
+              focus:border-blue-500
+            "
           >
-            {pet.name}
-          </option>
-        ))}
-      </select>
+            <option value={0}>
+              Select Veterinarian
+            </option>
 
-      {errors.petId && (
-        <p className="mt-1 text-sm text-red-500">
-          {errors.petId.message}
-        </p>
-      )}
-    </div>
-  )}
+            {veterinarians.map((vet) => (
+              <option
+                key={vet.id}
+                value={vet.id}
+              >
+                {vet.name}
+              </option>
+            ))}
+          </select>
 
-  <div>
-    <label className="mb-2 block text-sm font-medium text-slate-700">
-      Veterinarian
-    </label>
+          {errors.vetId && (
+            <p className="mt-1 text-sm text-red-500">
+              {errors.vetId.message}
+            </p>
+          )}
+        </div>
 
-    <select
-      {...register("vetId", {
-        valueAsNumber: true,
-      })}
-      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-    >
-      <option value={0}>Select Veterinarian</option>
+        {/* Appointment Date */}
+        <div className="md:col-span-2">
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Appointment Date
+          </label>
 
-      {veterinarians.map((vet) => (
-        <option
-          key={vet.id}
-          value={vet.id}
+          <input
+            type="date"
+            value={appointmentDate}
+            onChange={(event) =>
+              handleDateChange(
+                event.target.value
+              )
+            }
+            className="
+              w-full
+              rounded-xl
+              border
+              border-slate-300
+              px-4
+              py-3
+              outline-none
+              transition
+              focus:border-blue-500
+            "
+          />
+
+          {errors.scheduledAt && (
+            <p className="mt-1 text-sm text-red-500">
+              {errors.scheduledAt.message}
+            </p>
+          )}
+        </div>
+
+        {/* Time */}
+        <div className="md:col-span-2">
+          <label className="mb-2 block text-sm font-medium text-slate-700">
+            Appointment Time
+          </label>
+
+          <div className="grid grid-cols-2 gap-4">
+
+            {/* Hour */}
+            <select
+              value={appointmentHour}
+              onChange={(event) =>
+                handleHourChange(
+                  event.target.value
+                )
+              }
+              className="
+                w-full
+                rounded-xl
+                border
+                border-slate-300
+                bg-white
+                px-4
+                py-3
+                outline-none
+                transition
+                focus:border-blue-500
+              "
+            >
+              <option value="">
+                Select Hour
+              </option>
+
+              {hours.map((hour) => (
+                <option
+                  key={hour}
+                  value={hour}
+                >
+                  {hour}
+                </option>
+              ))}
+            </select>
+
+            {/* Minute */}
+            <select
+              value={appointmentMinute}
+              onChange={(event) =>
+                handleMinuteChange(
+                  event.target.value
+                )
+              }
+              className="
+                w-full
+                rounded-xl
+                border
+                border-slate-300
+                bg-white
+                px-4
+                py-3
+                outline-none
+                transition
+                focus:border-blue-500
+              "
+            >
+              <option value="">
+                Select Minute
+              </option>
+
+              {minutes.map((minute) => (
+                <option
+                  key={minute}
+                  value={minute}
+                >
+                  {minute}
+                </option>
+              ))}
+            </select>
+
+          </div>
+        </div>
+      </div>
+
+      {/* Chief Complaint */}
+      <div>
+        <label className="mb-2 block text-sm font-medium text-slate-700">
+          Chief Complaint
+        </label>
+
+        <textarea
+          rows={4}
+          {...register("chiefComplaint")}
+          className="
+            w-full
+            rounded-xl
+            border
+            border-slate-300
+            px-4
+            py-3
+            outline-none
+            transition
+            focus:border-blue-500
+          "
+        />
+
+        {errors.chiefComplaint && (
+          <p className="mt-1 text-sm text-red-500">
+            {errors.chiefComplaint.message}
+          </p>
+        )}
+      </div>
+
+      {/* Buttons */}
+      <div className="flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="
+            rounded-xl
+            border
+            border-slate-300
+            px-5
+            py-2.5
+            font-medium
+            text-slate-600
+            transition
+            hover:bg-slate-100
+          "
         >
-          {vet.name}
-        </option>
-      ))}
-    </select>
+          Cancel
+        </button>
 
-    {errors.vetId && (
-      <p className="mt-1 text-sm text-red-500">
-        {errors.vetId.message}
-      </p>
-    )}
-  </div>
-
-  <div>
-    <label className="mb-2 block text-sm font-medium text-slate-700">
-      Appointment Date & Time
-    </label>
-
-    <input
-      type="datetime-local"
-      {...register("scheduledAt")}
-      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-    />
-
-    {errors.scheduledAt && (
-      <p className="mt-1 text-sm text-red-500">
-        {errors.scheduledAt.message}
-      </p>
-    )}
-  </div>
-</div>
-
-<div>
-  <label className="mb-2 block text-sm font-medium text-slate-700">
-    Chief Complaint
-  </label>
-
-  <textarea
-    rows={4}
-    {...register("chiefComplaint")}
-    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500"
-  />
-
-  {errors.chiefComplaint && (
-    <p className="mt-1 text-sm text-red-500">
-      {errors.chiefComplaint.message}
-    </p>
-  )}
-</div>
-
-<div className="flex justify-end gap-3">
-  <button
-    type="button"
-    onClick={onCancel}
-    className="rounded-xl border border-slate-300 px-5 py-2.5 font-medium text-slate-600 transition hover:bg-slate-100"
-  >
-    Cancel
-  </button>
-
-  <button
-    type="submit"
-    disabled={isLoading}
-    className="rounded-xl bg-blue-600 px-5 py-2.5 font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
-  >
-    {isLoading
-      ? "Saving..."
-      : "Save Appointment"}
-  </button>
-</div>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="
+            rounded-xl
+            bg-blue-600
+            px-5
+            py-2.5
+            font-medium
+            text-white
+            transition
+            hover:bg-blue-700
+            disabled:opacity-50
+          "
+        >
+          {isLoading
+            ? "Saving..."
+            : "Save Appointment"}
+        </button>
+      </div>
     </form>
   );
 }

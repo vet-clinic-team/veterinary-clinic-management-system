@@ -56,8 +56,7 @@ function AppointmentsPage() {
     useState(false);
 
   const [initialLoading, setInitialLoading] =
-  useState(true);
-    
+    useState(true);
 
   const [error, setError] =
     useState("");
@@ -79,8 +78,9 @@ function AppointmentsPage() {
 
   const [searchTerm, setSearchTerm] =
     useState("");
-    const [debouncedSearchTerm, setDebouncedSearchTerm] =
-  useState("");
+
+  const [debouncedSearchTerm, setDebouncedSearchTerm] =
+    useState("");
 
   const [sortOption, setSortOption] =
     useState("scheduledAsc");
@@ -96,13 +96,14 @@ function AppointmentsPage() {
 
   const [totalPages, setTotalPages] =
     useState(0);
-    useEffect(() => {
-  const timer = setTimeout(() => {
-    setDebouncedSearchTerm(searchTerm);
-  }, 300);
 
-  return () => clearTimeout(timer);
-}, [searchTerm]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const fetchVisits = async () => {
     try {
@@ -132,7 +133,11 @@ function AppointmentsPage() {
           sort = undefined;
       }
 
-     
+      /*
+       * The backend does not support a search parameter.
+       * When a search term is provided, all backend pages
+       * are loaded and the filtering is performed on the frontend.
+       */
       if (debouncedSearchTerm.trim()) {
         const firstResponse =
           await getVisits({
@@ -148,7 +153,6 @@ function AppointmentsPage() {
         const totalBackendPages =
           firstResponse.totalPages;
 
-        
         if (totalBackendPages > 1) {
           const remainingPages =
             await Promise.all(
@@ -181,7 +185,6 @@ function AppointmentsPage() {
             .trim()
             .toLowerCase();
 
-        
         const filtered =
           allVisits.filter(
             (appointment) => {
@@ -213,7 +216,6 @@ function AppointmentsPage() {
             }
           );
 
-        
         const frontendTotalPages =
           Math.ceil(
             filtered.length / size
@@ -236,7 +238,6 @@ function AppointmentsPage() {
           )
         );
       } else {
-       
         const data =
           await getVisits({
             page,
@@ -252,12 +253,14 @@ function AppointmentsPage() {
           data.totalPages
         );
       }
-    } catch (err) {
-      console.error(err);
+    } catch (error: any) {
+      console.error(error);
 
-      setError(
-        "Failed to load appointments."
-      );
+      const message =
+        error?.response?.data?.message ??
+        "Failed to load appointments.";
+
+      setError(message);
     } finally {
       setLoading(false);
       setInitialLoading(false);
@@ -270,8 +273,14 @@ function AppointmentsPage() {
         await getCalendarVisits();
 
       setCalendarAppointments(data);
-    } catch (err) {
-      console.error(err);
+    } catch (error: any) {
+      console.error(error);
+
+      const message =
+        error?.response?.data?.message ??
+        "Failed to load calendar appointments.";
+
+      toast.error(message);
     }
   };
 
@@ -286,8 +295,8 @@ function AppointmentsPage() {
       setPets(
         data.content
       );
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -302,19 +311,19 @@ function AppointmentsPage() {
       setVeterinarians(
         data.content
       );
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
     }
   };
 
   useEffect(() => {
-  fetchVisits();
-}, [
-  page,
-  size,
-  sortOption,
-  debouncedSearchTerm,
-]);
+    fetchVisits();
+  }, [
+    page,
+    size,
+    sortOption,
+    debouncedSearchTerm,
+  ]);
 
   useEffect(() => {
     fetchPets();
@@ -493,8 +502,7 @@ function AppointmentsPage() {
       console.error(error);
 
       if (
-        error?.response?.status ===
-        409
+        error?.response?.status === 409
       ) {
         const suggestions =
           await findAlternativeSlots(
@@ -505,18 +513,17 @@ function AppointmentsPage() {
           suggestions
         );
 
-        toast.error(
-          "Cannot save appointment. Another appointment exists for this veterinarian within 15 minutes."
-        );
+        const message =
+          error?.response?.data?.message ??
+          "Cannot save appointment. Another appointment exists for this veterinarian within 15 minutes.";
+
+        toast.error(message);
       } else {
         const message =
-          error?.response?.data
-            ?.message ??
+          error?.response?.data?.message ??
           "Failed to save appointment.";
 
-        toast.error(
-          message
-        );
+        toast.error(message);
       }
     }
   };
@@ -548,13 +555,10 @@ function AppointmentsPage() {
         console.error(error);
 
         const message =
-          error?.response?.data
-            ?.message ??
-          "Failed to save appointment.";
+          error?.response?.data?.message ??
+          "Failed to update appointment status.";
 
-        toast.error(
-          message
-        );
+        toast.error(message);
       }
     };
 
@@ -585,13 +589,10 @@ function AppointmentsPage() {
         console.error(error);
 
         const message =
-          error?.response?.data
-            ?.message ??
+          error?.response?.data?.message ??
           "Failed to update medical notes.";
 
-        toast.error(
-          message
-        );
+        toast.error(message);
       }
     };
 
@@ -616,13 +617,10 @@ function AppointmentsPage() {
         );
 
         const message =
-          error?.response?.data
-            ?.message ??
+          error?.response?.data?.message ??
           "Failed to create follow-up visit.";
 
-        toast.error(
-          message
-        );
+        toast.error(message);
       }
     };
 
@@ -656,21 +654,19 @@ function AppointmentsPage() {
         console.error(error);
 
         if (
-          error.response?.status ===
-          409
+          error?.response?.status === 409
         ) {
-          toast.error(
-            "Cannot reschedule. Another appointment exists for this veterinarian."
-          );
+          const message =
+            error?.response?.data?.message ??
+            "Cannot reschedule appointment because another appointment exists for this veterinarian.";
+
+          toast.error(message);
         } else {
           const message =
-            error?.response?.data
-              ?.message ??
+            error?.response?.data?.message ??
             "Failed to reschedule appointment.";
 
-          toast.error(
-            message
-          );
+          toast.error(message);
         }
       }
     };
@@ -738,6 +734,7 @@ function AppointmentsPage() {
         document.createElement("a");
 
       link.href = url;
+
       link.download =
         "appointments.csv";
 
