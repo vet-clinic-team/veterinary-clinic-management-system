@@ -1,3 +1,4 @@
+
 package com.efe.veterinaryclinic.vaccination;
 
 import com.efe.veterinaryclinic.pet.Pet;
@@ -53,8 +54,14 @@ public class Vaccination {
     protected Vaccination() {
     }
 
-    public Vaccination(Pet pet, String vaccineType, LocalDateTime administeredAt, String lotNumber,
-                        String administeredBy, LocalDate nextDueDate) {
+    public Vaccination(
+            Pet pet,
+            String vaccineType,
+            LocalDateTime administeredAt,
+            String lotNumber,
+            String administeredBy,
+            LocalDate nextDueDate) {
+
         this.pet = pet;
         this.vaccineType = vaccineType;
         this.administeredAt = administeredAt;
@@ -63,13 +70,24 @@ public class Vaccination {
         this.nextDueDate = nextDueDate;
     }
 
-    public void update(Pet pet, String vaccineType, LocalDateTime administeredAt, String lotNumber,
-                        String administeredBy, LocalDate nextDueDate) {
+    public void update(
+            Pet pet,
+            String vaccineType,
+            LocalDateTime administeredAt,
+            String lotNumber,
+            String administeredBy,
+            LocalDate nextDueDate) {
+
         this.pet = pet;
         this.vaccineType = vaccineType;
         this.administeredAt = administeredAt;
         this.lotNumber = lotNumber;
         this.administeredBy = administeredBy;
+        this.nextDueDate = nextDueDate;
+    }
+
+    // Update only the automatically calculated follow-up date.
+    public void updateNextDueDate(LocalDate nextDueDate) {
         this.nextDueDate = nextDueDate;
     }
 

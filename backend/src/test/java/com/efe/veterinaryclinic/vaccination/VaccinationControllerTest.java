@@ -1,5 +1,9 @@
+
 package com.efe.veterinaryclinic.vaccination;
 
+import com.efe.veterinaryclinic.followup.FollowUpRule;
+import com.efe.veterinaryclinic.followup.FollowUpRuleRepository;
+import com.efe.veterinaryclinic.followup.IntervalUnit;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,12 +11,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -22,18 +28,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 class VaccinationControllerTest {
 
     @Value("${app.seed.admin.email}")
     private String SEED_ADMIN_EMAIL;
+
     @Value("${app.seed.admin.password}")
     private String SEED_ADMIN_PASSWORD;
+
     @Value("${app.seed.receptionist.email}")
     private String SEED_RECEPTIONIST_EMAIL;
+
     @Value("${app.seed.receptionist.password}")
     private String SEED_RECEPTIONIST_PASSWORD;
+
     @Value("${app.seed.vet1.email}")
     private String SEED_VET1_EMAIL;
+
     @Value("${app.seed.vet1.password}")
     private String SEED_VET1_PASSWORD;
 
@@ -43,11 +55,16 @@ class VaccinationControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private FollowUpRuleRepository followUpRuleRepository;
+
     @Test
     void vetCreatesVaccinationThenVaccinationCanBeFetchedById() throws Exception {
         String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-owner@example.com", "Boncuk");
+
+        ensureDogRule("ONE_YEAR", 1, IntervalUnit.YEAR);
 
         String createBody = objectMapper.writeValueAsString(
                 new VaccinationPayload(petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-2026-778", "Dr. Ahmet Kaya"));
@@ -66,7 +83,8 @@ class VaccinationControllerTest {
 
         long vaccinationId = objectMapper.readTree(response).get("id").asLong();
 
-        mockMvc.perform(get("/api/vaccinations/" + vaccinationId).header("Authorization", "Bearer " + receptionistToken))
+        mockMvc.perform(get("/api/vaccinations/" + vaccinationId)
+                        .header("Authorization", "Bearer " + receptionistToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(vaccinationId))
                 .andExpect(jsonPath("$.petId").value(petId));
@@ -77,6 +95,8 @@ class VaccinationControllerTest {
         String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-three-year@example.com", "Duman");
+
+        ensureDogRule("THREE_YEAR", 3, IntervalUnit.YEAR);
 
         String createBody = objectMapper.writeValueAsString(
                 new VaccinationPayload(petId, "THREE_YEAR", "2026-07-04T09:00:00", "LOT-2026-800", "Dr. Ahmet Kaya"));
@@ -90,7 +110,7 @@ class VaccinationControllerTest {
     }
 
     @Test
-    void createVaccinationWithUnlistedTypeDefaultsToOneYearNextDueDate() throws Exception {
+    void createVaccinationWithUnlistedTypeHasNoNextDueDate() throws Exception {
         String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-unlisted@example.com", "Cesur");
@@ -103,7 +123,7 @@ class VaccinationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createBody))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.nextDueDate").value("2027-07-04"));
+                .andExpect(jsonPath("$.nextDueDate").value(nullValue()));
     }
 
     @Test
@@ -111,7 +131,11 @@ class VaccinationControllerTest {
         String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-recalc@example.com", "Nala");
-        long vaccinationId = createVaccination(vetToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-802", "Dr. Kaya");
+
+        ensureDogRule("ONE_YEAR", 1, IntervalUnit.YEAR);
+
+        long vaccinationId = createVaccination(
+                vetToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-802", "Dr. Kaya");
 
         String updateBody = objectMapper.writeValueAsString(
                 new VaccinationPayload(petId, "ONE_YEAR", "2026-08-01T09:00:00", "LOT-802", "Dr. Kaya"));
@@ -269,7 +293,8 @@ class VaccinationControllerTest {
         String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-update-type-over@example.com", "Update Over Type");
-        long vaccinationId = createVaccination(adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-U1", "Dr. Kaya");
+        long vaccinationId = createVaccination(
+                adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-U1", "Dr. Kaya");
 
         String updateBody = objectMapper.writeValueAsString(
                 new VaccinationPayload(petId, "A".repeat(101), "2026-07-04T09:00:00", "LOT-U1", "Dr. Kaya"));
@@ -287,7 +312,8 @@ class VaccinationControllerTest {
         String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-update-lot-over@example.com", "Update Over Lot");
-        long vaccinationId = createVaccination(adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-U2", "Dr. Kaya");
+        long vaccinationId = createVaccination(
+                adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-U2", "Dr. Kaya");
 
         String updateBody = objectMapper.writeValueAsString(
                 new VaccinationPayload(petId, "ONE_YEAR", "2026-07-04T09:00:00", "L".repeat(101), "Dr. Kaya"));
@@ -305,7 +331,8 @@ class VaccinationControllerTest {
         String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-update-by-over@example.com", "Update Over By");
-        long vaccinationId = createVaccination(adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-U3", "Dr. Kaya");
+        long vaccinationId = createVaccination(
+                adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-U3", "Dr. Kaya");
 
         String updateBody = objectMapper.writeValueAsString(
                 new VaccinationPayload(petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-U3", "D".repeat(101)));
@@ -357,7 +384,8 @@ class VaccinationControllerTest {
         String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-update@example.com", "Karabas");
-        long vaccinationId = createVaccination(adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-A", "Dr. Kaya");
+        long vaccinationId = createVaccination(
+                adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-A", "Dr. Kaya");
 
         String updateBody = objectMapper.writeValueAsString(
                 new VaccinationPayload(petId, "THREE_YEAR", "2026-07-05T10:00:00", "LOT-B", "Dr. Yilmaz"));
@@ -376,7 +404,8 @@ class VaccinationControllerTest {
         String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-update-forbidden@example.com", "Pamuk");
-        long vaccinationId = createVaccination(adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-C", "Dr. Kaya");
+        long vaccinationId = createVaccination(
+                adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-C", "Dr. Kaya");
 
         String updateBody = objectMapper.writeValueAsString(
                 new VaccinationPayload(petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-C", "Hacked"));
@@ -408,7 +437,8 @@ class VaccinationControllerTest {
     void getUnknownVaccinationReturnsNotFound() throws Exception {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
 
-        mockMvc.perform(get("/api/vaccinations/999999").header("Authorization", "Bearer " + receptionistToken))
+        mockMvc.perform(get("/api/vaccinations/999999")
+                        .header("Authorization", "Bearer " + receptionistToken))
                 .andExpect(status().isNotFound());
     }
 
@@ -417,12 +447,15 @@ class VaccinationControllerTest {
         String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-delete@example.com", "Sansar");
-        long vaccinationId = createVaccination(adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-E", "Dr. Kaya");
+        long vaccinationId = createVaccination(
+                adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-E", "Dr. Kaya");
 
-        mockMvc.perform(delete("/api/vaccinations/" + vaccinationId).header("Authorization", "Bearer " + adminToken))
+        mockMvc.perform(delete("/api/vaccinations/" + vaccinationId)
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/api/vaccinations/" + vaccinationId).header("Authorization", "Bearer " + adminToken))
+        mockMvc.perform(get("/api/vaccinations/" + vaccinationId)
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isNotFound());
     }
 
@@ -432,12 +465,15 @@ class VaccinationControllerTest {
         String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-delete-by-vet@example.com", "Findik");
-        long vaccinationId = createVaccination(adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-F", "Dr. Kaya");
+        long vaccinationId = createVaccination(
+                adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-F", "Dr. Kaya");
 
-        mockMvc.perform(delete("/api/vaccinations/" + vaccinationId).header("Authorization", "Bearer " + vetToken))
+        mockMvc.perform(delete("/api/vaccinations/" + vaccinationId)
+                        .header("Authorization", "Bearer " + vetToken))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/api/vaccinations/" + vaccinationId).header("Authorization", "Bearer " + adminToken))
+        mockMvc.perform(get("/api/vaccinations/" + vaccinationId)
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isNotFound());
     }
 
@@ -446,9 +482,11 @@ class VaccinationControllerTest {
         String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-delete-forbidden@example.com", "Tekir");
-        long vaccinationId = createVaccination(adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-F2", "Dr. Kaya");
+        long vaccinationId = createVaccination(
+                adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-F2", "Dr. Kaya");
 
-        mockMvc.perform(delete("/api/vaccinations/" + vaccinationId).header("Authorization", "Bearer " + receptionistToken))
+        mockMvc.perform(delete("/api/vaccinations/" + vaccinationId)
+                        .header("Authorization", "Bearer " + receptionistToken))
                 .andExpect(status().isForbidden());
     }
 
@@ -457,9 +495,11 @@ class VaccinationControllerTest {
         String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-list@example.com", "Leo");
-        createVaccination(adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-G", "Dr. Kaya");
+        createVaccination(
+                adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-G", "Dr. Kaya");
 
-        mockMvc.perform(get("/api/vaccinations").header("Authorization", "Bearer " + receptionistToken))
+        mockMvc.perform(get("/api/vaccinations")
+                        .header("Authorization", "Bearer " + receptionistToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.page").exists())
@@ -472,8 +512,12 @@ class VaccinationControllerTest {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petIdA = createPet(receptionistToken, "vaccination-history-a@example.com", "Fistik");
         long petIdB = createPet(receptionistToken, "vaccination-history-b@example.com", "Cesur");
-        long vaccinationForPetA = createVaccination(adminToken, petIdA, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-H", "Dr. Kaya");
-        createVaccination(adminToken, petIdB, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-I", "Dr. Kaya");
+
+        long vaccinationForPetA = createVaccination(
+                adminToken, petIdA, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-H", "Dr. Kaya");
+
+        createVaccination(
+                adminToken, petIdB, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-I", "Dr. Kaya");
 
         mockMvc.perform(get("/api/pets/" + petIdA + "/vaccinations")
                         .header("Authorization", "Bearer " + receptionistToken))
@@ -496,16 +540,22 @@ class VaccinationControllerTest {
     void vaccinationStatsReflectTotalsAdministeredTodayUpcomingDueAndUniquePetsAfterCreatingOne() throws Exception {
         String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
+
         long totalBefore = fetchVaccinationStatsField(receptionistToken, "totalVaccinations");
         long administeredTodayBefore = fetchVaccinationStatsField(receptionistToken, "administeredToday");
         long upcomingDueBefore = fetchVaccinationStatsField(receptionistToken, "upcomingDue");
         long vaccinatedPetsBefore = fetchVaccinationStatsField(receptionistToken, "vaccinatedPets");
 
+        ensureDogRule("STATS_FOLLOWUP", 1, IntervalUnit.DAY);
+
         long petId = createPet(receptionistToken, "vaccination-stats@example.com", "Stats Kivi");
         String administeredAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-        createVaccination(vetToken, petId, "ONE_YEAR", administeredAt, "LOT-STATS-001", "Dr. Ahmet Kaya");
 
-        mockMvc.perform(get("/api/vaccinations/stats").header("Authorization", "Bearer " + receptionistToken))
+        createVaccination(
+                vetToken, petId, "STATS_FOLLOWUP", administeredAt, "LOT-STATS-001", "Dr. Ahmet Kaya");
+
+        mockMvc.perform(get("/api/vaccinations/stats")
+                        .header("Authorization", "Bearer " + receptionistToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalVaccinations").value(totalBefore + 1))
                 .andExpect(jsonPath("$.administeredToday").value(administeredTodayBefore + 1))
@@ -513,18 +563,49 @@ class VaccinationControllerTest {
                 .andExpect(jsonPath("$.vaccinatedPets").value(vaccinatedPetsBefore + 1));
     }
 
+    // Create a test-only protocol if it does not already exist in the H2 database.
+    private void ensureDogRule(
+            String vaccineType,
+            int intervalValue,
+            IntervalUnit intervalUnit) {
+
+        boolean exists = followUpRuleRepository
+                .findFirstBySpeciesIgnoreCaseAndProcedureTypeIgnoreCaseAndActiveTrue(
+                        "DOG", vaccineType)
+                .isPresent();
+
+        if (!exists) {
+            FollowUpRule rule = new FollowUpRule(
+                    "DOG",
+                    vaccineType,
+                    "Test protocol for " + vaccineType
+            );
+
+            rule.addStep(1, intervalValue, intervalUnit);
+            followUpRuleRepository.save(rule);
+        }
+    }
+
     private long fetchVaccinationStatsField(String token, String field) throws Exception {
-        String response = mockMvc.perform(get("/api/vaccinations/stats").header("Authorization", "Bearer " + token))
+        String response = mockMvc.perform(get("/api/vaccinations/stats")
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
         return objectMapper.readTree(response).get(field).asLong();
     }
 
-    private long createVaccination(String token, long petId, String vaccineType, String administeredAt,
-                                    String lotNumber, String administeredBy) throws Exception {
+    private long createVaccination(
+            String token,
+            long petId,
+            String vaccineType,
+            String administeredAt,
+            String lotNumber,
+            String administeredBy) throws Exception {
+
         String createBody = objectMapper.writeValueAsString(
-                new VaccinationPayload(petId, vaccineType, administeredAt, lotNumber, administeredBy));
+                new VaccinationPayload(
+                        petId, vaccineType, administeredAt, lotNumber, administeredBy));
 
         String response = mockMvc.perform(post("/api/vaccinations")
                         .header("Authorization", "Bearer " + token)
@@ -536,12 +617,26 @@ class VaccinationControllerTest {
         return objectMapper.readTree(response).get("id").asLong();
     }
 
-    private long createPet(String token, String ownerEmail, String petName) throws Exception {
+    private long createPet(
+            String token,
+            String ownerEmail,
+            String petName) throws Exception {
+
         long ownerId = createOwner(token, ownerEmail);
 
         String petBody = objectMapper.writeValueAsString(
-                new PetPayload(ownerId, petName, "DOG", "Golden Retriever", null,
-                        "2022-03-15", "FEMALE", 24.5, null, null));
+                new PetPayload(
+                        ownerId,
+                        petName,
+                        "DOG",
+                        "Golden Retriever",
+                        null,
+                        "2022-03-15",
+                        "FEMALE",
+                        24.5,
+                        null,
+                        null
+                ));
 
         String response = mockMvc.perform(post("/api/pets")
                         .header("Authorization", "Bearer " + token)
@@ -555,7 +650,13 @@ class VaccinationControllerTest {
 
     private long createOwner(String token, String email) throws Exception {
         String ownerBody = objectMapper.writeValueAsString(
-                new OwnerPayload("Mehmet", "Demir", "+90 555 123 4567", email, "Istanbul, Turkey"));
+                new OwnerPayload(
+                        "Mehmet",
+                        "Demir",
+                        "+90 555 123 4567",
+                        email,
+                        "Istanbul, Turkey"
+                ));
 
         String response = mockMvc.perform(post("/api/owners")
                         .header("Authorization", "Bearer " + token)
@@ -567,8 +668,12 @@ class VaccinationControllerTest {
         return objectMapper.readTree(response).get("id").asLong();
     }
 
-    private String loginAndGetToken(String email, String password) throws Exception {
-        String loginBody = objectMapper.writeValueAsString(new LoginPayload(email, password));
+    private String loginAndGetToken(
+            String email,
+            String password) throws Exception {
+
+        String loginBody = objectMapper.writeValueAsString(
+                new LoginPayload(email, password));
 
         String response = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -579,18 +684,37 @@ class VaccinationControllerTest {
         return objectMapper.readTree(response).get("token").asText();
     }
 
-    private record VaccinationPayload(Long petId, String vaccineType, String administeredAt, String lotNumber,
-                                       String administeredBy) {
+    private record VaccinationPayload(
+            Long petId,
+            String vaccineType,
+            String administeredAt,
+            String lotNumber,
+            String administeredBy) {
     }
 
-    private record PetPayload(Long ownerId, String name, String species, String breed, String speciesNote,
-                               String birthDate, String sex, Double weightKg, String allergies,
-                               String chronicConditions) {
+    private record PetPayload(
+            Long ownerId,
+            String name,
+            String species,
+            String breed,
+            String speciesNote,
+            String birthDate,
+            String sex,
+            Double weightKg,
+            String allergies,
+            String chronicConditions) {
     }
 
-    private record OwnerPayload(String firstName, String lastName, String phone, String email, String address) {
+    private record OwnerPayload(
+            String firstName,
+            String lastName,
+            String phone,
+            String email,
+            String address) {
     }
 
-    private record LoginPayload(String email, String password) {
+    private record LoginPayload(
+            String email,
+            String password) {
     }
 }

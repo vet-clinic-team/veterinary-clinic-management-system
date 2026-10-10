@@ -16,18 +16,32 @@ public class AuthRateLimiter {
     private final long refillPeriodSeconds;
     private final Map<String, Bucket> bucketsByIp = new ConcurrentHashMap<>();
 
-    public AuthRateLimiter(@Value("${app.rate-limit.auth.capacity}") long capacity,
-                            @Value("${app.rate-limit.auth.refill-period-seconds}") long refillPeriodSeconds) {
+    public AuthRateLimiter(
+            @Value("${app.rate-limit.auth.capacity}") long capacity,
+            @Value("${app.rate-limit.auth.refill-period-seconds}") long refillPeriodSeconds) {
+
         this.capacity = capacity;
         this.refillPeriodSeconds = refillPeriodSeconds;
     }
 
     public Bucket resolveBucket(String ipAddress) {
-        return bucketsByIp.computeIfAbsent(ipAddress, ip -> newBucket());
+        return bucketsByIp.computeIfAbsent(
+                ipAddress,
+                ip -> newBucket()
+        );
     }
 
     private Bucket newBucket() {
-        Bandwidth limit = Bandwidth.simple(capacity, Duration.ofSeconds(refillPeriodSeconds));
-        return Bucket.builder().addLimit(limit).build();
+        Bandwidth limit = Bandwidth.builder()
+                .capacity(capacity)
+                .refillGreedy(
+                        capacity,
+                        Duration.ofSeconds(refillPeriodSeconds)
+                )
+                .build();
+
+        return Bucket.builder()
+                .addLimit(limit)
+                .build();
     }
 }

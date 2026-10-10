@@ -1,3 +1,4 @@
+
 package com.efe.veterinaryclinic.vaccination;
 
 import org.springframework.data.domain.Page;
@@ -17,12 +18,52 @@ public interface VaccinationRepository extends JpaRepository<Vaccination, Long> 
 
     long countByNextDueDateAfter(LocalDate date);
 
-    long countByAdministeredAtBetween(LocalDateTime start, LocalDateTime end);
+    long countByAdministeredAtBetween(
+            LocalDateTime start,
+            LocalDateTime end
+    );
 
-    List<Vaccination> findByNextDueDateLessThanEqualOrderByNextDueDateAsc(LocalDate date);
+    List<Vaccination> findByNextDueDateLessThanEqualOrderByNextDueDateAsc(
+            LocalDate date
+    );
 
     List<Vaccination> findByNextDueDate(LocalDate date);
+
+    // Count all vaccinations of the same type for a pet.
+    long countByPet_IdAndVaccineTypeIgnoreCase(
+            Long petId,
+            String vaccineType
+    );
+
+    // Count vaccinations excluding a specific record.
+    long countByPet_IdAndVaccineTypeIgnoreCaseAndIdNot(
+            Long petId,
+            String vaccineType,
+            Long excludedId
+    );
+
+    // Count only vaccinations performed before the given date.
+    long countByPet_IdAndVaccineTypeIgnoreCaseAndAdministeredAtBefore(
+            Long petId,
+            String vaccineType,
+            LocalDateTime administeredAt
+    );
+
+    // Count previous vaccinations while excluding the current record.
+    long countByPet_IdAndVaccineTypeIgnoreCaseAndAdministeredAtBeforeAndIdNot(
+            Long petId,
+            String vaccineType,
+            LocalDateTime administeredAt,
+            Long excludedId
+    );
+
+    // Retrieve vaccinations in chronological order.
+    List<Vaccination> findByPet_IdAndVaccineTypeIgnoreCaseOrderByAdministeredAtAscIdAsc(
+            Long petId,
+            String vaccineType
+    );
 
     @Query("SELECT COUNT(DISTINCT v.pet.id) FROM Vaccination v")
     long countDistinctPet();
 }
+

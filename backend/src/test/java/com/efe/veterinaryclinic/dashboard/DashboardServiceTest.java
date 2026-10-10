@@ -23,9 +23,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.test.context.ActiveProfiles;
+import com.efe.veterinaryclinic.followup.FollowUpRule;
+import com.efe.veterinaryclinic.followup.FollowUpRuleRepository;
+import com.efe.veterinaryclinic.followup.IntervalUnit;
+import org.junit.jupiter.api.BeforeEach;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 class DashboardServiceTest {
 
     private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
@@ -43,6 +49,8 @@ class DashboardServiceTest {
     private String SEED_VET1_EMAIL;
     @Value("${app.seed.vet1.password}")
     private String SEED_VET1_PASSWORD;
+    @Autowired
+private FollowUpRuleRepository ruleRepository;
 
     @Autowired
     private MockMvc mockMvc;
@@ -52,6 +60,26 @@ class DashboardServiceTest {
 
     @Autowired
     private DashboardService dashboardService;
+    @BeforeEach
+void setupVaccinationRule() {
+    if (ruleRepository
+            .findFirstBySpeciesIgnoreCaseAndProcedureTypeIgnoreCaseAndActiveTrue(
+                    "DOG", "ONE_YEAR")
+            .isPresent()) {
+        return;
+    }
+
+    FollowUpRule rule = new FollowUpRule(
+            "DOG",
+            "ONE_YEAR",
+            "Dashboard Test Protocol"
+    );
+
+    rule.addStep(1, 1, IntervalUnit.YEAR);
+    rule.addStep(2, 1, IntervalUnit.YEAR);
+
+    ruleRepository.saveAndFlush(rule);
+}
 
     @Test
     void todayAppointmentsCountsOnlyNonCancelledVisitsScheduledToday() throws Exception {
