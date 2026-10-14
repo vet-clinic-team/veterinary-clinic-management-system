@@ -102,6 +102,14 @@ public class FollowUp {
         }
     }
 
+    // Reopen a cancelled follow-up when its source becomes active again.
+    public void reopenCancelled() {
+        if (this.status == FollowUpStatus.CANCELLED) {
+            this.status = FollowUpStatus.PENDING;
+            this.completionType = null;
+        }
+    }
+
     public void cancel() {
         this.status = FollowUpStatus.CANCELLED;
         this.completionType = null;
@@ -118,3 +126,4 @@ public class FollowUp {
         this.updatedAt = LocalDateTime.now();
     }
 }
+

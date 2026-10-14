@@ -1,3 +1,4 @@
+
 package com.efe.veterinaryclinic.visit;
 
 import org.springframework.data.domain.Page;
@@ -38,7 +39,8 @@ public interface VisitRepository extends JpaRepository<Visit, Long>, JpaSpecific
     long countByVet_IdAndStatusNotAndScheduledAtGreaterThanEqual(
             Long vetId, VisitStatus excludedStatus, LocalDateTime from);
 
-    Optional<Visit> findTopByPet_IdAndStatusNotOrderByScheduledAtDesc(Long petId, VisitStatus excludedStatus);
+    Optional<Visit> findTopByPet_IdAndStatusNotOrderByScheduledAtDesc(
+            Long petId, VisitStatus excludedStatus);
 
     List<Visit> findByStatusAndScheduledAtBetweenOrderByScheduledAtAsc(
             VisitStatus status, LocalDateTime windowStart, LocalDateTime windowEnd);
@@ -47,4 +49,32 @@ public interface VisitRepository extends JpaRepository<Visit, Long>, JpaSpecific
 
     List<Visit> findByStatusAndScheduledAtBetweenAndReminderSentAtIsNull(
             VisitStatus status, LocalDateTime windowStart, LocalDateTime windowEnd);
+
+    // Legacy query: counts completed visits across all treatment courses.
+    // Do not use this query for multi-stage treatment progression.
+    long countByPet_IdAndProcedureTypeIgnoreCaseAndStatusAndScheduledAtBefore(
+            Long petId,
+            String procedureType,
+            VisitStatus status,
+            LocalDateTime scheduledAt
+    );
+
+    // Find visits belonging to a specific treatment course.
+    List<Visit> findByTreatmentPlan_IdOrderByScheduledAtAsc(
+            Long treatmentPlanId
+    );
+
+    // Count previous completed applications within the same treatment course.
+    long countByTreatmentPlan_IdAndStatusAndScheduledAtBefore(
+            Long treatmentPlanId,
+            VisitStatus status,
+            LocalDateTime scheduledAt
+    );
+    // Count completed visits belonging to a specific treatment course.
+long countByTreatmentPlan_IdAndStatus(
+        Long treatmentPlanId,
+        VisitStatus status
+);
 }
+
+

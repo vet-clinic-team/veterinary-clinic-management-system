@@ -1,3 +1,4 @@
+
 package com.efe.veterinaryclinic.security;
 
 import org.springframework.context.annotation.Bean;
@@ -54,28 +55,40 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/auth/users/*/reset-password").hasRole("ADMIN")
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+
                         .requestMatchers(HttpMethod.POST, "/api/owners").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.PUT, "/api/owners/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.PATCH, "/api/owners/*/archive").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.PATCH, "/api/owners/*/activate").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.DELETE, "/api/owners/**").hasRole("ADMIN")
+
                         .requestMatchers(HttpMethod.POST, "/api/pets").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.PUT, "/api/pets/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.PATCH, "/api/pets/*/archive").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.PATCH, "/api/pets/*/activate").hasAnyRole("ADMIN", "RECEPTIONIST")
+
                         .requestMatchers(HttpMethod.POST, "/api/vets").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/vets/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/vets/*/performance").hasRole("ADMIN")
+
                         .requestMatchers(HttpMethod.POST, "/api/visits").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.PUT, "/api/visits/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.PATCH, "/api/visits/*/medical-notes").hasAnyRole("ADMIN", "VET")
                         .requestMatchers(HttpMethod.POST, "/api/visits/*/follow-up").hasAnyRole("ADMIN", "VET")
+
                         .requestMatchers(HttpMethod.POST, "/api/vaccinations").hasAnyRole("ADMIN", "VET")
                         .requestMatchers(HttpMethod.PUT, "/api/vaccinations/**").hasAnyRole("ADMIN", "VET")
                         .requestMatchers(HttpMethod.DELETE, "/api/vaccinations/**").hasAnyRole("ADMIN", "VET")
+
+                        // Follow-up permissions
+                        .requestMatchers(HttpMethod.PATCH, "/api/follow-ups/*/complete").hasAnyRole("ADMIN", "VET")
+                        .requestMatchers("/api/follow-ups/**").hasAnyRole("ADMIN", "VET", "RECEPTIONIST")
+
                         .requestMatchers(HttpMethod.POST, "/api/invoices").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .requestMatchers(HttpMethod.PATCH, "/api/invoices/**").hasAnyRole("ADMIN", "RECEPTIONIST")
+
                         .requestMatchers(HttpMethod.PATCH, "/api/support-requests/*/status").hasRole("ADMIN")
+
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(rateLimitingFilter, JwtAuthenticationFilter.class);
@@ -83,3 +96,4 @@ public class SecurityConfig {
         return http.build();
     }
 }
+

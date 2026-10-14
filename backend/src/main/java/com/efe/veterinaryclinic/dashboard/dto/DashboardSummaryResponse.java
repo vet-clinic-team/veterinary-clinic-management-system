@@ -1,3 +1,4 @@
+
 package com.efe.veterinaryclinic.dashboard.dto;
 
 import java.util.List;
@@ -14,6 +15,7 @@ public record DashboardSummaryResponse(
         List<VetAppointmentCountEntry> appointmentsByVet,
         List<TodayScheduleEntry> todaySchedule,
         List<VaccinationAlertEntry> upcomingVaccinationAlerts,
-        List<FollowUpAlertEntry> overdueFollowUpAlerts
+        List<FollowUpAlertEntry> overdueFollowUpAlerts,
+        List<PendingFollowUpAlertEntry> pendingFollowUpAlerts
 ) {
 }

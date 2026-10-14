@@ -29,6 +29,7 @@ public class FollowUpRuleService {
     }
 
     // Calculate the next due date when creating a vaccination.
+    // Previous vaccinations determine the current rule step.
     public Optional<LocalDate> calculateNextDueDate(
             Long petId,
             String species,
@@ -108,6 +109,45 @@ public class FollowUpRuleService {
         );
     }
 
+    // Calculate a follow-up date for non-vaccination procedures.
+    // The caller supplies the number of previous applications.
+    // This method does not depend on vaccination history.
+    public Optional<LocalDate> calculateNextDueDateForProcedure(
+            String species,
+            String procedureType,
+            LocalDate performedDate,
+            long previousApplications) {
+
+        if (species == null
+                || species.isBlank()
+                || procedureType == null
+                || procedureType.isBlank()
+                || performedDate == null) {
+
+            return Optional.empty();
+        }
+
+        if (previousApplications < 0) {
+            throw new IllegalArgumentException(
+                    "Previous applications cannot be negative"
+            );
+        }
+
+        Optional<FollowUpRule> ruleOptional =
+                findActiveRule(species, procedureType);
+
+        if (ruleOptional.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return calculateNextDate(
+                ruleOptional.get(),
+                previousApplications,
+                performedDate
+        );
+    }
+
+    // Find an active rule matching the species and procedure type.
     private Optional<FollowUpRule> findActiveRule(
             String species,
             String procedureType) {
@@ -119,6 +159,7 @@ public class FollowUpRuleService {
                 );
     }
 
+    // Select the appropriate rule step or repeating interval.
     private Optional<LocalDate> calculateNextDate(
             FollowUpRule rule,
             long previousApplications,
@@ -182,6 +223,7 @@ public class FollowUpRuleService {
         return Optional.empty();
     }
 
+    // Add the configured interval to the procedure date.
     private LocalDate addInterval(
             LocalDate date,
             int intervalValue,
@@ -195,5 +237,6 @@ public class FollowUpRuleService {
         };
     }
 }
+
 
 

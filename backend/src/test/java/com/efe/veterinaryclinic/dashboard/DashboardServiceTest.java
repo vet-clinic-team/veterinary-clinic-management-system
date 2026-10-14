@@ -365,34 +365,74 @@ void setupVaccinationRule() {
         assertThat(alerts).noneMatch(entry -> entry.petId().equals(petId)
                 && entry.nextDueDate().isAfter(LocalDate.now().plusDays(30)));
     }
+@Test
+void pendingFollowUpAlertsIncludesCompletedVisitWithPastDueDate() throws Exception {
 
-    @Test
-    void overdueFollowUpAlertsIncludesOnlyCompletedVisitsWithPastFollowUpDate() throws Exception {
-        String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
-        String vetToken = loginAndGetToken(SEED_VET1_EMAIL, SEED_VET1_PASSWORD);
-        long petId = createPet(receptionistToken, "dashboard-followup@example.com", "Baris");
-        long vetId = createVet(receptionistToken, "VET-LIC-DASH-010");
-        long visitId = createVisit(receptionistToken, petId, vetId, LocalDateTime.now().minusDays(10).withHour(9).withMinute(0));
+    String receptionistToken = loginAndGetToken(
+            SEED_RECEPTIONIST_EMAIL,
+            SEED_RECEPTIONIST_PASSWORD
+    );
 
-        mockMvc.perform(patch("/api/visits/" + visitId + "/status")
-                        .header("Authorization", "Bearer " + receptionistToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new StatusPayload("COMPLETED"))))
-                .andExpect(status().isOk());
+    String vetToken = loginAndGetToken(
+            SEED_VET1_EMAIL,
+            SEED_VET1_PASSWORD
+    );
 
-        assertThat(dashboardService.getSummary().overdueFollowUpAlerts()).noneMatch(entry -> entry.visitId().equals(visitId));
+    long petId = createPet(
+            receptionistToken,
+            "dashboard-followup@example.com",
+            "Baris"
+    );
 
-        mockMvc.perform(patch("/api/visits/" + visitId + "/medical-notes")
-                        .header("Authorization", "Bearer " + vetToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                new MedicalNotesPayload("Diagnosis", "Notes", LocalDate.now().minusDays(1).toString()))))
-                .andExpect(status().isOk());
+    long vetId = createVet(
+            receptionistToken,
+            "VET-LIC-DASH-010"
+    );
 
-        DashboardSummaryResponse summary = dashboardService.getSummary();
-        assertThat(summary.overdueFollowUpAlerts()).anyMatch(entry -> entry.visitId().equals(visitId)
-                && entry.petName().equals("Baris"));
-    }
+    long visitId = createVisit(
+            receptionistToken,
+            petId,
+            vetId,
+            LocalDateTime.now().minusDays(10)
+                    .withHour(9)
+                    .withMinute(0)
+    );
+
+    // Add medical notes and a follow-up date.
+    mockMvc.perform(patch("/api/visits/" + visitId + "/medical-notes")
+                    .header("Authorization", "Bearer " + vetToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(
+                            new MedicalNotesPayload(
+                                    "Diagnosis",
+                                    "Notes",
+                                    LocalDate.now().minusDays(1).toString(),
+                                    "PARASITE_TREATMENT",
+                                    false
+                            )
+                    )))
+            .andExpect(status().isOk());
+
+    // Complete the visit to activate its follow-up.
+    mockMvc.perform(patch("/api/visits/" + visitId + "/status")
+                    .header("Authorization", "Bearer " + receptionistToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(
+                            new StatusPayload("COMPLETED")
+                    )))
+            .andExpect(status().isOk());
+
+    // Verify the follow-up appears in pending alerts.
+    DashboardSummaryResponse summary = dashboardService.getSummary();
+
+    assertThat(summary.pendingFollowUpAlerts())
+            .anyMatch(entry ->
+                    entry.petId().equals(petId)
+                    && entry.petName().equals("Baris")
+                    && entry.procedureType().equals("PARASITE_TREATMENT")
+                    && entry.dueDate().equals(LocalDate.now().minusDays(1))
+            );
+}
 
     private long vetAppointmentCount(DashboardSummaryResponse summary, long vetId) {
         return summary.appointmentsByVet().stream()
@@ -498,9 +538,14 @@ void setupVaccinationRule() {
     private record InvoiceItemPayload(String description, String category, Integer quantity, BigDecimal unitPrice) {
     }
 
-    private record MedicalNotesPayload(String diagnosis, String treatmentNotes, String followUpDate) {
-    }
-
+  private record MedicalNotesPayload(
+        String diagnosis,
+        String treatmentNotes,
+        String followUpDate,
+        String procedureType,
+        Boolean useAutomaticFollowUp
+) {
+}
     private record PetPayload(Long ownerId, String name, String species, String breed, String speciesNote,
                                String birthDate, String sex, Double weightKg, String allergies,
                                String chronicConditions) {

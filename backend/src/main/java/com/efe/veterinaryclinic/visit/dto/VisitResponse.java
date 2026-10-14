@@ -1,3 +1,4 @@
+
 package com.efe.veterinaryclinic.visit.dto;
 
 import com.efe.veterinaryclinic.visit.AllergyWarningChecker;
@@ -21,7 +22,8 @@ public record VisitResponse(
         List<String> warnings,
         LocalDateTime reminderSentAt,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        LocalDate suggestedFollowUpDate
 ) {
 
     public static VisitResponse from(Visit visit) {
@@ -35,10 +37,14 @@ public record VisitResponse(
                 visit.getDiagnosis(),
                 visit.getTreatmentNotes(),
                 visit.getFollowUpDate(),
-                AllergyWarningChecker.check(visit.getTreatmentNotes(), visit.getPet().getAllergies()),
+                AllergyWarningChecker.check(
+                        visit.getTreatmentNotes(),
+                        visit.getPet().getAllergies()
+                ),
                 visit.getReminderSentAt(),
                 visit.getCreatedAt(),
-                visit.getUpdatedAt()
+                visit.getUpdatedAt(),
+                visit.getSuggestedFollowUpDate()
         );
     }
 }
