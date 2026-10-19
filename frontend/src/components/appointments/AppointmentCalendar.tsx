@@ -240,31 +240,68 @@ function AppointmentCalendar({
         eventContent={(
           eventInfo: EventContentArg
         ) => {
-          const isFollowUp = Boolean(
-            eventInfo.event
-              .extendedProps.followUp
-          );
+          const followUp = eventInfo.event
+            .extendedProps.followUp as
+            | FollowUp
+            | undefined;
+
+          const pet = eventInfo.event
+            .extendedProps.pet as
+            | string
+            | undefined;
+
+          const procedureName =
+            followUp?.procedureType.replace(
+              /_/g,
+              " "
+            );
 
           return (
-            <div className="calendar-event">
-              {!isFollowUp && (
-                <div className="calendar-time">
-                  {eventInfo.timeText}
-                </div>
-              )}
+            <div className="calendar-event min-w-0 w-full">
+              {followUp ? (
+                <>
+                  <div
+                    className="
+                      font-semibold
+                      whitespace-normal
+                      break-words
+                      leading-tight
+                    "
+                  >
+                    {pet}
+                  </div>
 
-              <div className="calendar-title">
-                {eventInfo.event.title}
-              </div>
+                  <div
+                    className="
+                      mt-1
+                      text-xs
+                      whitespace-normal
+                      break-words
+                      leading-tight
+                      opacity-90
+                    "
+                  >
+                    {procedureName}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="calendar-time">
+                    {eventInfo.timeText}
+                  </div>
 
-              {!isFollowUp && (
-                <div className="calendar-vet">
-                  Dr.{" "}
-                  {
-                    eventInfo.event
-                      .extendedProps.vet
-                  }
-                </div>
+                  <div className="calendar-title">
+                    {eventInfo.event.title}
+                  </div>
+
+                  <div className="calendar-vet">
+                    Dr.{" "}
+                    {
+                      eventInfo.event
+                        .extendedProps.vet
+                    }
+                  </div>
+                </>
               )}
             </div>
           );
@@ -275,3 +312,4 @@ function AppointmentCalendar({
 }
 
 export default AppointmentCalendar;
+
