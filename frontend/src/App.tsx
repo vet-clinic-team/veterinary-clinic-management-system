@@ -23,6 +23,7 @@ import InvoicesPage from "./pages/invoices/InvoicesPage";
 import SupportPage from "./pages/support/SupportPage";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
+import ProcedureCatalogPage from "./pages/catalog/ProcedureCatalogPage";
 
 function App() {
   return (
@@ -134,6 +135,17 @@ function App() {
           </ProtectedRoute>
         }
       />
+      
+{/* Procedure Catalog */}
+<Route
+  path="/procedure-catalog"
+  element={
+    <ProtectedRoute>
+      <ProcedureCatalogPage />
+    </ProtectedRoute>
+  }
+/>
+
 
       {/* Invoices */}
       <Route

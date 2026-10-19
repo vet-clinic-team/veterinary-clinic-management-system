@@ -228,9 +228,10 @@ const handleLogout = () => {
 };
 
 const notificationCount =
-  (notifications?.upcomingAppointments.length ?? 0) +
-  (notifications?.vaccinationsDueToday.length ?? 0) +
-  (notifications?.newRecords.length ?? 0);
+  (notifications?.upcomingAppointments?.length ?? 0) +
+  (notifications?.vaccinationsDueToday?.length ?? 0) +
+  (notifications?.newRecords?.length ?? 0) +
+  (notifications?.pendingFollowUps?.length ?? 0);
 
 return (
     <header className="flex h-18 items-center border-b border-slate-200 bg-white px-8">

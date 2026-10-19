@@ -1,3 +1,4 @@
+
 export type RevenueCategory =
   | "CONSULTATION"
   | "VACCINATION"
@@ -59,6 +60,15 @@ export interface FollowUpAlertEntry {
   followUpDate: string;
 }
 
+export interface PendingFollowUpAlertEntry {
+  followUpId: number;
+  petId: number;
+  petName: string;
+  procedureType: string;
+  dueDate: string;
+  status: "PENDING" | "COMPLETED" | "CANCELLED";
+}
+
 export interface DashboardSummary {
   todayAppointments: number;
   activePatients: number;
@@ -80,4 +90,6 @@ export interface DashboardSummary {
   upcomingVaccinationAlerts: VaccinationAlertEntry[];
 
   overdueFollowUpAlerts: FollowUpAlertEntry[];
+
+  pendingFollowUpAlerts: PendingFollowUpAlertEntry[];
 }

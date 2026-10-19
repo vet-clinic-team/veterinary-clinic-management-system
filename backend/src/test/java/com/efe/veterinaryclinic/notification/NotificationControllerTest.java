@@ -1,6 +1,8 @@
 
 package com.efe.veterinaryclinic.notification;
 
+import com.efe.veterinaryclinic.catalog.ProcedureCatalog;
+import com.efe.veterinaryclinic.catalog.ProcedureCatalogRepository;
 import com.efe.veterinaryclinic.followup.FollowUp;
 import com.efe.veterinaryclinic.followup.FollowUpRepository;
 import com.efe.veterinaryclinic.followup.FollowUpRule;
@@ -71,6 +73,9 @@ class NotificationControllerTest {
 
     @Autowired
     private PetRepository petRepository;
+
+    @Autowired
+    private ProcedureCatalogRepository procedureCatalogRepository;
 
     @Test
     void includesAppointmentStartingSoonVaccinationDueTodayAndNewlyCreatedRecords()
@@ -417,6 +422,21 @@ class NotificationControllerTest {
             long petId,
             LocalDateTime administeredAt
     ) throws Exception {
+
+        // Ensure the test vaccine exists in the procedure catalog.
+        if (procedureCatalogRepository
+                .findByCodeIgnoreCaseAndSpeciesIgnoreCase("ONE_DAY_TEST", "DOG")
+                .isEmpty()) {
+
+            procedureCatalogRepository.saveAndFlush(
+                    new ProcedureCatalog(
+                            "ONE_DAY_TEST",
+                            "Notification Test Vaccine",
+                            "DOG",
+                            "VACCINATION"
+                    )
+            );
+        }
 
         String vaccinationBody = objectMapper.writeValueAsString(
                 new VaccinationPayload(

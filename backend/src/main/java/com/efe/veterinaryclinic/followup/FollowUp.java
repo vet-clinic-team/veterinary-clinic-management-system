@@ -7,6 +7,7 @@ import lombok.Getter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "follow_ups")
@@ -26,6 +27,9 @@ public class FollowUp {
 
     @Column(nullable = false)
     private LocalDate dueDate;
+
+    @Column(nullable = false)
+    private boolean manuallyRescheduled = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -57,13 +61,14 @@ public class FollowUp {
             String sourceType,
             Long sourceRecordId) {
 
-        this.pet = pet;
-        this.procedureType = procedureType;
-        this.dueDate = dueDate;
-        this.sourceType = sourceType;
-        this.sourceRecordId = sourceRecordId;
+        this.pet = Objects.requireNonNull(pet);
+        this.procedureType = Objects.requireNonNull(procedureType);
+        this.dueDate = Objects.requireNonNull(dueDate);
+        this.sourceType = Objects.requireNonNull(sourceType);
+        this.sourceRecordId = Objects.requireNonNull(sourceRecordId);
         this.status = FollowUpStatus.PENDING;
         this.completionType = null;
+        this.manuallyRescheduled = false;
     }
 
     public void updateDetails(
@@ -71,9 +76,25 @@ public class FollowUp {
             String procedureType,
             LocalDate dueDate) {
 
-        this.pet = pet;
-        this.procedureType = procedureType;
-        this.dueDate = dueDate;
+        this.pet = Objects.requireNonNull(pet);
+        this.procedureType = Objects.requireNonNull(procedureType);
+
+        // Preserve a date manually selected by the veterinarian.
+        if (!this.manuallyRescheduled) {
+            this.dueDate = Objects.requireNonNull(dueDate);
+        }
+    }
+
+    // Manually change the due date of a pending follow-up.
+    public void rescheduleManually(LocalDate newDueDate) {
+        if (this.status != FollowUpStatus.PENDING) {
+            throw new IllegalStateException(
+                    "Only pending follow-ups can be rescheduled."
+            );
+        }
+
+        this.dueDate = Objects.requireNonNull(newDueDate);
+        this.manuallyRescheduled = true;
     }
 
     // Complete a follow-up automatically.

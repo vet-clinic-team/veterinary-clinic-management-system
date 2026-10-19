@@ -1,5 +1,9 @@
 package com.efe.veterinaryclinic.dashboard;
 
+import com.efe.veterinaryclinic.catalog.ProcedureCatalog;
+import com.efe.veterinaryclinic.catalog.ProcedureCatalogRepository;
+
+
 import com.efe.veterinaryclinic.dashboard.dto.DashboardSummaryResponse;
 import com.efe.veterinaryclinic.dashboard.dto.VaccinationAlertEntry;
 import com.efe.veterinaryclinic.visit.VisitStatus;
@@ -51,6 +55,8 @@ class DashboardServiceTest {
     private String SEED_VET1_PASSWORD;
     @Autowired
 private FollowUpRuleRepository ruleRepository;
+@Autowired
+private ProcedureCatalogRepository procedureCatalogRepository;
 
     @Autowired
     private MockMvc mockMvc;
@@ -62,6 +68,19 @@ private FollowUpRuleRepository ruleRepository;
     private DashboardService dashboardService;
     @BeforeEach
 void setupVaccinationRule() {
+        if (procedureCatalogRepository
+        .findByCodeIgnoreCaseAndSpeciesIgnoreCase("ONE_YEAR", "DOG")
+        .isEmpty()) {
+
+    procedureCatalogRepository.saveAndFlush(
+            new ProcedureCatalog(
+                    "ONE_YEAR",
+                    "Dashboard Test Vaccine",
+                    "DOG",
+                    "VACCINATION"
+            )
+    );
+}
     if (ruleRepository
             .findFirstBySpeciesIgnoreCaseAndProcedureTypeIgnoreCaseAndActiveTrue(
                     "DOG", "ONE_YEAR")

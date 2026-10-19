@@ -14,6 +14,8 @@ import com.efe.veterinaryclinic.pet.PetRepository;
 import com.efe.veterinaryclinic.security.Role;
 import com.efe.veterinaryclinic.vaccination.dto.VaccinationRequest;
 import com.efe.veterinaryclinic.vaccination.dto.VaccinationResponse;
+import com.efe.veterinaryclinic.catalog.ProcedureCatalog;
+import com.efe.veterinaryclinic.catalog.ProcedureCatalogRepository;
 
 import jakarta.persistence.EntityManager;
 
@@ -36,6 +38,8 @@ class VaccinationFollowUpIntegrationTest {
     private static final String TEST_VACCINE =
             "INTEGRATION_TEST_VACCINE";
 
+
+
     @Autowired
     private OwnerRepository ownerRepository;
 
@@ -56,11 +60,14 @@ class VaccinationFollowUpIntegrationTest {
 
     @Autowired
     private EntityManager entityManager;
+    @Autowired
+private ProcedureCatalogRepository procedureCatalogRepository;
 
     @Test
     void creatingVaccinationAutomaticallyCreatesFollowUp() {
 
         Pet pet = createTestPet();
+        
         createTestRule();
 
         VaccinationResponse response = createVaccination(
@@ -777,6 +784,9 @@ void vaccinationWithoutActiveRuleDoesNotCreateFollowUp() {
     
 
     private Pet createTestPet() {
+        ensureCatVaccinationCatalog(TEST_VACCINE);
+ensureCatVaccinationCatalog("DIFFERENT_TEST_VACCINE");
+ensureCatVaccinationCatalog("NO_RULE_TEST_VACCINE");
 
         Owner owner = ownerRepository.save(
                 new Owner(
@@ -803,8 +813,29 @@ void vaccinationWithoutActiveRuleDoesNotCreateFollowUp() {
                 )
         );
     }
+    private void ensureCatVaccinationCatalog(String vaccineType) {
+
+    boolean exists = procedureCatalogRepository
+            .findByCodeIgnoreCaseAndSpeciesIgnoreCase(
+                    vaccineType,
+                    "CAT"
+            )
+            .isPresent();
+
+    if (!exists) {
+        procedureCatalogRepository.saveAndFlush(
+                new ProcedureCatalog(
+                        vaccineType,
+                        "Test vaccine " + vaccineType,
+                        "CAT",
+                        "VACCINATION"
+                )
+        );
+    }
+}
 
     private void createTestRule() {
+        ensureCatVaccinationCatalog(TEST_VACCINE);
 
         // Test-only intervals, not medical recommendations.
         FollowUpRule rule = new FollowUpRule(

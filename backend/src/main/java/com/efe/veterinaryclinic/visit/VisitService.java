@@ -408,7 +408,14 @@ public VisitResponse updateMedicalNotes(
 
         Optional<LocalDate> calculatedDate =
                 followUpRuleService.calculateNextDueDateForProcedure(
-                        visit.getPet().getSpecies(),
+                        
+"OTHER".equalsIgnoreCase(visit.getPet().getSpecies())
+        ? (visit.getPet().getSpeciesNote() == null
+                || visit.getPet().getSpeciesNote().isBlank()
+                ? "OTHER"
+                : visit.getPet().getSpeciesNote().trim())
+        : visit.getPet().getSpecies(),
+
                         procedureType,
                         visit.getScheduledAt().toLocalDate(),
                         previousApplications

@@ -1,6 +1,7 @@
-
 package com.efe.veterinaryclinic.vaccination;
 
+import com.efe.veterinaryclinic.catalog.ProcedureCatalog;
+import com.efe.veterinaryclinic.catalog.ProcedureCatalogRepository;
 import com.efe.veterinaryclinic.followup.FollowUpRule;
 import com.efe.veterinaryclinic.followup.FollowUpRuleRepository;
 import com.efe.veterinaryclinic.followup.IntervalUnit;
@@ -57,6 +58,9 @@ class VaccinationControllerTest {
 
     @Autowired
     private FollowUpRuleRepository followUpRuleRepository;
+
+    @Autowired
+    private ProcedureCatalogRepository procedureCatalogRepository;
 
     @Test
     void vetCreatesVaccinationThenVaccinationCanBeFetchedById() throws Exception {
@@ -115,13 +119,23 @@ class VaccinationControllerTest {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-unlisted@example.com", "Cesur");
 
-        String createBody = objectMapper.writeValueAsString(
-                new VaccinationPayload(petId, "Some Other Vaccine", "2026-07-04T09:00:00", "LOT-2026-801", "Dr. Ahmet Kaya"));
+       ensureDogVaccinationCatalog("UNLISTED_VACCINE");
+
+String createBody = objectMapper.writeValueAsString(
+        new VaccinationPayload(petId, "UNLISTED_VACCINE", "2026-07-04T09:00:00", "LOT-2026-801", "Dr. Ahmet Kaya"));
 
         mockMvc.perform(post("/api/vaccinations")
                         .header("Authorization", "Bearer " + vetToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createBody))
+                        .andDo(result -> {
+    Exception exception = result.getResolvedException();
+
+    if (exception != null) {
+        System.out.println("GERCEK HATA: " + exception.getMessage());
+        exception.printStackTrace(System.out);
+    }
+})
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.nextDueDate").value(nullValue()));
     }
@@ -187,6 +201,8 @@ class VaccinationControllerTest {
         long petId = createPet(receptionistToken, "vaccination-type-max@example.com", "Max Type");
         String vaccineType = "A".repeat(100);
 
+        ensureDogVaccinationCatalog(vaccineType);
+
         String createBody = objectMapper.writeValueAsString(
                 new VaccinationPayload(petId, vaccineType, "2026-07-04T09:00:00", "LOT-MAX-1", "Dr. Ahmet Kaya"));
 
@@ -226,6 +242,8 @@ class VaccinationControllerTest {
         String createBody = objectMapper.writeValueAsString(
                 new VaccinationPayload(petId, "ONE_YEAR", "2026-07-04T09:00:00", lotNumber, "Dr. Ahmet Kaya"));
 
+        ensureDogVaccinationCatalog("ONE_YEAR");
+
         mockMvc.perform(post("/api/vaccinations")
                         .header("Authorization", "Bearer " + vetToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -258,6 +276,8 @@ class VaccinationControllerTest {
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-by-max@example.com", "Max By");
         String administeredBy = "D".repeat(100);
+
+        ensureDogVaccinationCatalog("ONE_YEAR");
 
         String createBody = objectMapper.writeValueAsString(
                 new VaccinationPayload(petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-MAX-3", administeredBy));
@@ -384,6 +404,9 @@ class VaccinationControllerTest {
         String adminToken = loginAndGetToken(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD);
         String receptionistToken = loginAndGetToken(SEED_RECEPTIONIST_EMAIL, SEED_RECEPTIONIST_PASSWORD);
         long petId = createPet(receptionistToken, "vaccination-update@example.com", "Karabas");
+
+        ensureDogVaccinationCatalog("THREE_YEAR");
+
         long vaccinationId = createVaccination(
                 adminToken, petId, "ONE_YEAR", "2026-07-04T09:00:00", "LOT-A", "Dr. Kaya");
 
@@ -563,11 +586,12 @@ class VaccinationControllerTest {
                 .andExpect(jsonPath("$.vaccinatedPets").value(vaccinatedPetsBefore + 1));
     }
 
-    // Create a test-only protocol if it does not already exist in the H2 database.
     private void ensureDogRule(
             String vaccineType,
             int intervalValue,
             IntervalUnit intervalUnit) {
+
+        ensureDogVaccinationCatalog(vaccineType);
 
         boolean exists = followUpRuleRepository
                 .findFirstBySpeciesIgnoreCaseAndProcedureTypeIgnoreCaseAndActiveTrue(
@@ -583,6 +607,27 @@ class VaccinationControllerTest {
 
             rule.addStep(1, intervalValue, intervalUnit);
             followUpRuleRepository.save(rule);
+        }
+    }
+
+    private void ensureDogVaccinationCatalog(String vaccineType) {
+
+        boolean exists = procedureCatalogRepository
+                .findByCodeIgnoreCaseAndSpeciesIgnoreCase(
+                        vaccineType,
+                        "DOG"
+                )
+                .isPresent();
+
+        if (!exists) {
+            procedureCatalogRepository.save(
+                    new ProcedureCatalog(
+                            vaccineType,
+                            "Test vaccine " + vaccineType,
+                            "DOG",
+                            "VACCINATION"
+                    )
+            );
         }
     }
 
@@ -602,6 +647,8 @@ class VaccinationControllerTest {
             String administeredAt,
             String lotNumber,
             String administeredBy) throws Exception {
+
+        ensureDogVaccinationCatalog(vaccineType);
 
         String createBody = objectMapper.writeValueAsString(
                 new VaccinationPayload(

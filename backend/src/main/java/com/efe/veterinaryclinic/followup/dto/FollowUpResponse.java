@@ -15,7 +15,8 @@ public record FollowUpResponse(
         FollowUpStatus status,
         FollowUpCompletionType completionType,
         String sourceType,
-        Long sourceRecordId
+        Long sourceRecordId,
+        boolean manuallyRescheduled
 ) {
     public static FollowUpResponse from(FollowUp followUp) {
         return new FollowUpResponse(
@@ -26,8 +27,10 @@ public record FollowUpResponse(
                 followUp.getStatus(),
                 followUp.getCompletionType(),
                 followUp.getSourceType(),
-                followUp.getSourceRecordId()
+                followUp.getSourceRecordId(),
+                followUp.isManuallyRescheduled()
         );
     }
 }
+
 

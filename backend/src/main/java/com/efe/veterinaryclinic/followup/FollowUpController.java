@@ -4,18 +4,19 @@ package com.efe.veterinaryclinic.followup;
 import com.efe.veterinaryclinic.followup.dto.FollowUpResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/follow-ups")
-@Tag(name = "Follow-ups", description = "Automatic and manual follow-up tracking")
+@Tag(
+        name = "Follow-ups",
+        description = "Automatic and manual follow-up tracking"
+)
 public class FollowUpController {
 
     private final FollowUpService followUpService;
@@ -57,6 +58,29 @@ public class FollowUpController {
         return ResponseEntity.ok(response);
     }
 
+    // Request body for manually changing the follow-up date.
+    public record RescheduleRequest(LocalDate dueDate) {
+    }
+
+    @PatchMapping("/{id}/reschedule")
+    @Operation(
+            summary = "Manually reschedule a follow-up",
+            description = "ADMIN, VET only."
+    )
+    public ResponseEntity<FollowUpResponse> reschedule(
+            @PathVariable Long id,
+            @RequestBody RescheduleRequest request) {
+
+        FollowUp followUp = followUpService.rescheduleManually(
+                id,
+                request.dueDate()
+        );
+
+        return ResponseEntity.ok(
+                FollowUpResponse.from(followUp)
+        );
+    }
+
     @PatchMapping("/{id}/complete")
     @Operation(
             summary = "Manually complete a follow-up",
@@ -67,7 +91,10 @@ public class FollowUpController {
 
         FollowUp followUp = followUpService.completeManually(id);
 
-        return ResponseEntity.ok(FollowUpResponse.from(followUp));
+        return ResponseEntity.ok(
+                FollowUpResponse.from(followUp)
+        );
     }
 }
+
 

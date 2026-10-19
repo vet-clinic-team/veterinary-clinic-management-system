@@ -10,13 +10,16 @@ import PetOwnerCard from "../../components/pets/PetOwnerCard";
 import PetWeightHistory from "../../components/pets/PetWeightHistory";
 import PetVisitHistory from "../../components/pets/PetVisitHistory";
 import PetVaccinationHistory from "../../components/pets/PetVaccinationHistory";
-import PetInvoiceHistory from "../../components/pets/PetInvoiceHistory";
+
 
 import Modal from "../../components/ui/Modal";
 import OwnerForm from "../../components/owners/OwnerForm";
 import AppointmentForm from "../../components/appointments/AppointmentForm";
 import VaccinationForm from "../../components/vaccinations/VaccinationForm";
-
+import PetInvoiceHistory from "../../components/pets/PetInvoiceHistory";
+import PetTreatmentPlans from "../../components/pets/PetTreatmentPlans";
+import PetFollowUps from "../../components/pets/PetFollowUps";
+import { useAuthStore } from "../../store/authStore";
 import {
   getOwnerById,
   getOwners,
@@ -64,6 +67,11 @@ import type {
 
 function PetDetailPage() {
   const navigate = useNavigate();
+
+  const user = useAuthStore((state) => state.user);
+
+  const canManageFollowUps =
+    user?.role === "ADMIN" || user?.role === "VET";
 
   const { id } = useParams<{ id: string }>();
 
@@ -572,6 +580,15 @@ function PetDetailPage() {
                   );
                 }}
               />
+              {/* Treatment Plans */}
+<PetTreatmentPlans petId={pet.id} />
+
+{/* Follow-up History */}
+<PetFollowUps
+  petId={pet.id}
+  refreshKey={visitRefreshKey}
+  canComplete={canManageFollowUps}
+/>
 
               {/* Vaccination History */}
               <PetVaccinationHistory

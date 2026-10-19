@@ -15,3 +15,22 @@ Thumbs.db
 
 # Security scan reports
 security-reports/
+# Frontend dependencies and build outputs
+node_modules/
+dist/
+coverage/
+.vite/
+
+# Backend build outputs
+target/
+*.class
+
+# Additional sensitive files
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Temporary files
+*.tmp
+*.bak

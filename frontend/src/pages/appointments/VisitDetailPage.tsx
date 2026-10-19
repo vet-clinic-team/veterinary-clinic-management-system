@@ -21,6 +21,9 @@ import {
 } from "../../services/visitService";
 
 import { createInvoice } from "../../services/invoiceService";
+import { getTreatmentPlansByPet } from "../../services/treatmentPlanService";
+
+import type { TreatmentPlan } from "../../types/treatmentPlan";
 
 import type {
   InvoiceItemCategory,
@@ -101,6 +104,8 @@ function VisitDetailPage() {
 
   const [visit, setVisit] =
     useState<Visit | null>(null);
+    const [treatmentPlans, setTreatmentPlans] =
+  useState<TreatmentPlan[]>([]);
 
   const [currentStep, setCurrentStep] =
     useState(0);
@@ -122,6 +127,17 @@ function VisitDetailPage() {
 
   const [followUpDate, setFollowUpDate] =
     useState("");
+
+  const [selectedTreatmentPlanId, setSelectedTreatmentPlanId] =
+  useState<number | null>(null);
+
+const [procedureType, setProcedureType] =
+  useState("");
+
+const [useAutomaticFollowUp, setUseAutomaticFollowUp] =
+  useState(true);  
+
+    
 
   const [invoiceItems, setInvoiceItems] =
     useState<CreateInvoiceItemRequest[]>([
@@ -159,6 +175,8 @@ const invoiceTotal =
           await getVisitById(visitId);
 
         setVisit(data);
+        const plans = await getTreatmentPlansByPet(data.petId);
+setTreatmentPlans(plans);
 
         setDiagnosis(
           data.diagnosis ?? ""
@@ -171,6 +189,10 @@ const invoiceTotal =
         setFollowUpDate(
           data.followUpDate ?? ""
         );
+        
+setProcedureType(data.procedureType ?? "");
+setSelectedTreatmentPlanId(data.treatmentPlanId ?? null);
+
       } catch (err) {
         console.error(err);
         setError(
@@ -198,10 +220,16 @@ const invoiceTotal =
       data.treatmentNotes ?? ""
     );
 
-    setFollowUpDate(
-      data.followUpDate ?? ""
-    );
-  };
+    
+setFollowUpDate(
+  data.followUpDate ?? ""
+);
+
+setProcedureType(data.procedureType ?? "");
+setSelectedTreatmentPlanId(data.treatmentPlanId ?? null);
+};
+
+
 
   const updateStatus = async (
     status: VisitStatus
@@ -231,36 +259,40 @@ const invoiceTotal =
     }
   };
 
-  const saveMedicalNotes = async () => {
-    try {
-      setSaving(true);
+  
+const saveMedicalNotes = async (): Promise<boolean> => {
+  try {
+    setSaving(true);
 
-      await updateMedicalNotes(
-        visitId,
-        {
-          diagnosis,
-          treatmentNotes,
-          followUpDate:
-            followUpDate || null,
-        }
-      );
+    await updateMedicalNotes(visitId, {
+      diagnosis,
+      treatmentNotes,
+      followUpDate: followUpDate || null,
+      procedureType: procedureType.trim() || null,
+      useAutomaticFollowUp,
+      treatmentPlanId: selectedTreatmentPlanId,
+    });
 
-      await refreshVisit();
+    await refreshVisit();
 
-      toast.success(
-        "Medical information saved successfully."
-      );
-    } catch (err: any) {
-      console.error(err);
+    toast.success(
+      "Medical information saved successfully."
+    );
 
-      toast.error(
-        err?.response?.data?.message ??
-          "Failed to save medical information."
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
+    return true;
+  } catch (err: any) {
+    console.error(err);
+
+    toast.error(
+      err?.response?.data?.message ??
+        "Failed to save medical information."
+    );
+
+    return false;
+  } finally {
+    setSaving(false);
+  }
+};
 
   const addInvoiceItem = () => {
     setInvoiceItems((items) => [
@@ -398,18 +430,20 @@ navigate("/appointments");
       }
     }
 
-   if (
+  if (
   steps[currentStep].key === "DIAGNOSIS" &&
   !isReceptionist
 ) {
-  await saveMedicalNotes();
+  const saved = await saveMedicalNotes();
+  if (!saved) return;
 }
 
 if (
   steps[currentStep].key === "TREATMENT" &&
   !isReceptionist
 ) {
-  await saveMedicalNotes();
+  const saved = await saveMedicalNotes();
+  if (!saved) return;
 }
 
     setCurrentStep((step) =>
@@ -758,6 +792,7 @@ if (
               </div>
             </div>
           )}
+          
 
           {/* Treatment */}
 
@@ -803,6 +838,63 @@ if (
   </div>
 )}
 
+{/* Treatment Plan */}
+<div>
+  <label className="text-sm font-medium text-slate-700">
+    Treatment Plan
+  </label>
+
+  <select
+    value={selectedTreatmentPlanId ?? ""}
+    onChange={(event) => {
+      const id = event.target.value
+        ? Number(event.target.value)
+        : null;
+
+      setSelectedTreatmentPlanId(id);
+
+      const selectedPlan = treatmentPlans.find(
+        (plan) => plan.id === id
+      );
+
+      setProcedureType(selectedPlan?.procedureType ?? "");
+    }}
+    disabled={isReceptionist}
+    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 disabled:bg-slate-100"
+  >
+    <option value="">No treatment plan</option>
+
+    {treatmentPlans
+      .filter((plan) => plan.status === "ACTIVE")
+      .map((plan) => (
+        <option key={plan.id} value={plan.id}>
+          {plan.procedureType.replaceAll("_", " ")}
+        </option>
+      ))}
+  </select>
+</div>
+
+
+{/* Procedure Type */}
+<div>
+  <label className="text-sm font-medium text-slate-700">
+    Procedure Type
+  </label>
+
+  <input
+    type="text"
+    value={procedureType}
+    onChange={(event) =>
+      setProcedureType(event.target.value)
+    }
+    maxLength={100}
+    disabled={isReceptionist}
+    placeholder="e.g. PARASITE_TREATMENT"
+    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 disabled:bg-slate-100"
+  />
+</div>
+
+
               <div>
                 <label className="text-sm font-medium text-slate-700">
                   Treatment Notes
@@ -823,6 +915,43 @@ if (
   }
 />
               </div>
+              
+{/* Suggested Follow-up Date */}
+{visit.suggestedFollowUpDate && (
+  <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+    <p className="text-sm font-semibold text-blue-900">
+      Automatically Suggested Follow-up Date
+    </p>
+
+    <p className="mt-2 text-sm text-blue-700">
+      {visit.suggestedFollowUpDate}
+    </p>
+  </div>
+)}
+
+              
+{/* Automatic Follow-up */}
+<div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+  <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
+    <input
+      type="checkbox"
+      checked={useAutomaticFollowUp}
+      onChange={(event) =>
+        setUseAutomaticFollowUp(event.target.checked)
+      }
+      disabled={isReceptionist}
+      className="h-4 w-4 accent-blue-600"
+    />
+
+    Calculate follow-up automatically
+  </label>
+
+  <p className="mt-2 text-xs text-slate-500">
+    The system calculates the next follow-up date
+    based on the procedure type and treatment rules.
+  </p>
+</div>
+
 
               <div>
                 <label className="text-sm font-medium text-slate-700">

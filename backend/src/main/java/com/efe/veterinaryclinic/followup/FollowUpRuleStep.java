@@ -1,5 +1,7 @@
+
 package com.efe.veterinaryclinic.followup;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 
@@ -12,6 +14,7 @@ public class FollowUpRuleStep {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rule_id", nullable = false)
     private FollowUpRule rule;

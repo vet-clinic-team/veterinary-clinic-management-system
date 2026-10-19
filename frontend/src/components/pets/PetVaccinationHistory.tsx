@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 
 import { getPetVaccinations } from "../../services/petService";
@@ -18,23 +19,18 @@ function PetVaccinationHistory({
   const [vaccinations, setVaccinations] =
     useState<Vaccination[]>([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchVaccinations = async () => {
       try {
         setLoading(true);
 
-        const data =
-          await getPetVaccinations(petId);
+        const data = await getPetVaccinations(petId);
 
         setVaccinations(data.content);
       } catch (error) {
-        console.error(
-          "Failed to load vaccinations:",
-          error
-        );
+        console.error("Failed to load vaccinations:", error);
       } finally {
         setLoading(false);
       }
@@ -42,6 +38,24 @@ function PetVaccinationHistory({
 
     fetchVaccinations();
   }, [petId]);
+
+  const formatDate = (date?: string | null) => {
+    if (!date) return "Not scheduled";
+
+    const datePart = date.slice(0, 10);
+    const [year, month, day] = datePart.split("-").map(Number);
+
+    if (!year || !month || !day) return "-";
+
+    return new Date(
+      Date.UTC(year, month - 1, day)
+    ).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+  };
 
   return (
     <div
@@ -56,13 +70,7 @@ function PetVaccinationHistory({
       "
     >
       <div className="mb-6 flex items-center justify-between">
-        <h2
-          className="
-            text-xl
-            font-semibold
-            text-slate-900
-          "
-        >
+        <h2 className="text-xl font-semibold text-slate-900">
           Vaccination History
         </h2>
 
@@ -95,137 +103,101 @@ function PetVaccinationHistory({
         </p>
       ) : (
         <div className="space-y-4">
-          {vaccinations.map(
-            (vaccination) => (
+          {vaccinations.map((vaccination) => (
+            <div
+              key={vaccination.id}
+              className="
+                rounded-xl
+                border
+                border-slate-200
+                p-5
+              "
+            >
               <div
-                key={vaccination.id}
                 className="
-                  rounded-xl
-                  border
-                  border-slate-200
-                  p-5
+                  flex
+                  items-center
+                  justify-between
+                  gap-4
                 "
               >
-                <div
+                <h3
                   className="
-                    flex
-                    items-center
-                    justify-between
-                    gap-4
+                    text-lg
+                    font-semibold
+                    text-slate-900
                   "
                 >
-                  <h3
+                  {vaccination.vaccineType.replaceAll("_", " ")}
+                </h3>
+
+                <div className="flex items-center gap-3">
+                  <span
                     className="
-                      text-lg
-                      font-semibold
-                      text-slate-900
+                      rounded-full
+                      bg-emerald-100
+                      px-3
+                      py-1
+                      text-xs
+                      font-medium
+                      text-emerald-700
                     "
                   >
-                    {vaccination.vaccineType.replaceAll(
-                      "_",
-                      " "
-                    )}
-                  </h3>
+                    Completed
+                  </span>
 
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="
-                        rounded-full
-                        bg-emerald-100
-                        px-3
-                        py-1
-                        text-xs
-                        font-medium
-                        text-emerald-700
-                      "
-                    >
-                      Completed
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onEditVaccination(
-                          vaccination
-                        )
-                      }
-                      className="
-                        rounded-lg
-                        bg-blue-50
-                        px-3
-                        py-1.5
-                        text-xs
-                        font-medium
-                        text-blue-600
-                        transition
-                        hover:bg-blue-100
-                      "
-                    >
-                      Edit
-                    </button>
-                  </div>
-                </div>
-
-                <div
-                  className="
-                    mt-4
-                    grid
-                    gap-3
-                    text-sm
-                    text-slate-600
-                    md:grid-cols-2
-                  "
-                >
-                  <p>
-                    <strong>
-                      Administered:
-                    </strong>{" "}
-                    {new Date(
-                      vaccination.administeredAt
-                    ).toLocaleDateString(
-                      "en-GB",
-                      {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      }
-                    )}
-                  </p>
-
-                  <p>
-                    <strong>
-                      Next Due:
-                    </strong>{" "}
-                    {new Date(
-                      vaccination.nextDueDate
-                    ).toLocaleDateString(
-                      "en-GB",
-                      {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      }
-                    )}
-                  </p>
-
-                  <p>
-                    <strong>
-                      Lot Number:
-                    </strong>{" "}
-                    {vaccination.lotNumber ||
-                      "-"}
-                  </p>
-
-                  <p>
-                    <strong>
-                      Veterinarian:
-                    </strong>{" "}
-                    {vaccination.administeredBy}
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() => onEditVaccination(vaccination)}
+                    className="
+                      rounded-lg
+                      bg-blue-50
+                      px-3
+                      py-1.5
+                      text-xs
+                      font-medium
+                      text-blue-600
+                      transition
+                      hover:bg-blue-100
+                    "
+                  >
+                    Edit
+                  </button>
                 </div>
               </div>
-            )
-          )}
+
+              <div
+                className="
+                  mt-4
+                  grid
+                  gap-3
+                  text-sm
+                  text-slate-600
+                  md:grid-cols-2
+                "
+              >
+                <p>
+                  <strong>Administered Date:</strong>{" "}
+                  {formatDate(vaccination.administeredAt)}
+                </p>
+
+                <p>
+                  <strong>Next Due:</strong>{" "}
+                  {formatDate(vaccination.nextDueDate)}
+                </p>
+
+                <p>
+                  <strong>Lot Number:</strong>{" "}
+                  {vaccination.lotNumber || "-"}
+                </p>
+
+                <p>
+                  <strong>Veterinarian:</strong>{" "}
+                  {vaccination.administeredBy}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -233,3 +205,4 @@ function PetVaccinationHistory({
 }
 
 export default PetVaccinationHistory;
+

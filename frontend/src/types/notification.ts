@@ -1,3 +1,4 @@
+
 export interface UpcomingAppointmentNotification {
   visitId: number;
   petName: string;
@@ -23,8 +24,17 @@ export interface NewRecordNotification {
   createdAt: string;
 }
 
+export interface PendingFollowUpNotification {
+  id: number;
+  petId: number;
+  petName: string;
+  procedureType: string;
+  dueDate: string;
+}
+
 export interface NotificationResponse {
   upcomingAppointments: UpcomingAppointmentNotification[];
   vaccinationsDueToday: VaccinationDueTodayNotification[];
   newRecords: NewRecordNotification[];
+  pendingFollowUps: PendingFollowUpNotification[];
 }

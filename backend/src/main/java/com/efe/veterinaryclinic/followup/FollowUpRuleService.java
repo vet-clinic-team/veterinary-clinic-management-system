@@ -3,13 +3,18 @@ package com.efe.veterinaryclinic.followup;
 
 import com.efe.veterinaryclinic.vaccination.Vaccination;
 import com.efe.veterinaryclinic.vaccination.VaccinationRepository;
+import com.efe.veterinaryclinic.catalog.ProcedureCatalogService;
+
 
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
+
 
 @Service
 public class FollowUpRuleService {
@@ -17,16 +22,22 @@ public class FollowUpRuleService {
     private final FollowUpRuleRepository ruleRepository;
     private final FollowUpRuleStepRepository stepRepository;
     private final VaccinationRepository vaccinationRepository;
+    private final ProcedureCatalogService catalogService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public FollowUpRuleService(
-            FollowUpRuleRepository ruleRepository,
-            FollowUpRuleStepRepository stepRepository,
-            VaccinationRepository vaccinationRepository) {
+        FollowUpRuleRepository ruleRepository,
+        FollowUpRuleStepRepository stepRepository,
+        VaccinationRepository vaccinationRepository,
+        ProcedureCatalogService catalogService,
+        ApplicationEventPublisher eventPublisher) {
 
-        this.ruleRepository = ruleRepository;
-        this.stepRepository = stepRepository;
-        this.vaccinationRepository = vaccinationRepository;
-    }
+    this.ruleRepository = ruleRepository;
+    this.stepRepository = stepRepository;
+    this.vaccinationRepository = vaccinationRepository;
+    this.catalogService = catalogService;
+    this.eventPublisher = eventPublisher;
+}
 
     // Calculate the next due date when creating a vaccination.
     // Previous vaccinations determine the current rule step.
@@ -147,17 +158,31 @@ public class FollowUpRuleService {
         );
     }
 
-    // Find an active rule matching the species and procedure type.
+
+    // Find a species-specific rule first, then an approved general rule.
     private Optional<FollowUpRule> findActiveRule(
             String species,
             String procedureType) {
 
-        return ruleRepository
+        // First, search for a rule specific to the animal species.
+        Optional<FollowUpRule> specificRule = ruleRepository
                 .findFirstBySpeciesIgnoreCaseAndProcedureTypeIgnoreCaseAndActiveTrue(
                         species,
                         procedureType
                 );
+
+        if (specificRule.isPresent()) {
+            return specificRule;
+        }
+
+        // Use a general rule only when one has been explicitly configured.
+        return ruleRepository
+                .findFirstBySpeciesIgnoreCaseAndProcedureTypeIgnoreCaseAndActiveTrue(
+                        "ALL",
+                        procedureType
+                );
     }
+
 
     // Select the appropriate rule step or repeating interval.
     private Optional<LocalDate> calculateNextDate(
@@ -236,6 +261,165 @@ public class FollowUpRuleService {
             case YEAR -> date.plusYears(intervalValue);
         };
     }
+
+@org.springframework.transaction.annotation.Transactional
+public FollowUpRule createRule(
+        String species,
+        String procedureType,
+        String name,
+        List<RuleStepInput> steps,
+        Integer repeatIntervalValue,
+        IntervalUnit repeatIntervalUnit) {
+
+    if (species == null || species.isBlank()
+            || procedureType == null || procedureType.isBlank()
+            || name == null || name.isBlank()) {
+        throw new IllegalArgumentException(
+                "Species, procedure type and name are required"
+        );
+    }
+
+    String normalizedSpecies =
+            species.trim().toUpperCase(java.util.Locale.ROOT);
+
+    String normalizedProcedure =
+            procedureType.trim().toUpperCase(java.util.Locale.ROOT);
+            // Ensure the procedure exists and is active in the catalog.
+catalogService.requireActive(
+        normalizedProcedure,
+        normalizedSpecies
+);
+
+    if (ruleRepository
+            .existsBySpeciesIgnoreCaseAndProcedureTypeIgnoreCase(
+                    normalizedSpecies,
+                    normalizedProcedure)) {
+        throw new IllegalArgumentException(
+                "Follow-up rule already exists for this species and procedure"
+        );
+    }
+
+    if ((repeatIntervalValue == null)
+            != (repeatIntervalUnit == null)) {
+        throw new IllegalArgumentException(
+                "Repeat interval value and unit must be provided together"
+        );
+    }
+
+    FollowUpRule rule = new FollowUpRule(
+            normalizedSpecies,
+            normalizedProcedure,
+            name.trim()
+    );
+
+    if (steps != null) {
+        for (RuleStepInput step : steps) {
+            rule.addStep(
+                    step.stepNumber(),
+                    step.intervalValue(),
+                    step.intervalUnit()
+            );
+        }
+    }
+
+    if (repeatIntervalValue != null) {
+        rule.configureRepetition(
+                repeatIntervalValue,
+                repeatIntervalUnit
+        );
+    }
+
+    if (rule.getSteps().isEmpty()
+            && !rule.isRepeatAfterLastStep()) {
+        throw new IllegalArgumentException(
+                "At least one step or repeating interval is required"
+        );
+    }
+
+    FollowUpRule savedRule = ruleRepository.saveAndFlush(rule);
+
+eventPublisher.publishEvent(
+        new FollowUpRuleCreatedEvent(
+                normalizedSpecies,
+                normalizedProcedure
+        )
+);
+
+return savedRule;
+}
+
+@org.springframework.transaction.annotation.Transactional
+public FollowUpRule updateRule(
+        Long id,
+        String name,
+        boolean active,
+        List<RuleStepInput> steps,
+        Integer repeatIntervalValue,
+        IntervalUnit repeatIntervalUnit) {
+
+    FollowUpRule rule = ruleRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException(
+                    "Follow-up rule not found: " + id
+            ));
+
+    if ((repeatIntervalValue == null) != (repeatIntervalUnit == null)) {
+        throw new IllegalArgumentException(
+                "Repeat interval value and unit must be provided together"
+        );
+    }
+
+    rule.updateDetails(name, active);
+    rule.clearSteps();
+    rule.disableRepetition();
+
+    if (steps != null) {
+        for (RuleStepInput step : steps) {
+            rule.addStep(
+                    step.stepNumber(),
+                    step.intervalValue(),
+                    step.intervalUnit()
+            );
+        }
+    }
+
+    if (repeatIntervalValue != null) {
+        rule.configureRepetition(
+                repeatIntervalValue,
+                repeatIntervalUnit
+        );
+    }
+
+    if (rule.getSteps().isEmpty() && !rule.isRepeatAfterLastStep()) {
+        throw new IllegalArgumentException(
+                "At least one step or repeating interval is required"
+        );
+    }
+
+    FollowUpRule savedRule = ruleRepository.saveAndFlush(rule);
+
+    if (savedRule.isActive()) {
+    eventPublisher.publishEvent(
+            new FollowUpRuleCreatedEvent(
+                    savedRule.getSpecies(),
+                    savedRule.getProcedureType()
+            )
+    );
+}
+
+    return savedRule;
+}
+
+
+public record RuleStepInput(
+        int stepNumber,
+        int intervalValue,
+        IntervalUnit intervalUnit
+) {}
+// List follow-up rules for the selected species.
+public List<FollowUpRule> getRulesBySpecies(String species) {
+    return ruleRepository.findBySpeciesIgnoreCaseOrderByIdDesc(species);
+}
+
 }
 
 

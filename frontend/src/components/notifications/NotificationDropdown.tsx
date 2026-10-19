@@ -1,6 +1,8 @@
+
 import {
   Bell,
   CalendarDays,
+  Clock3,
   Loader2,
   PawPrint,
 } from "lucide-react";
@@ -23,6 +25,19 @@ const formatDate = (date: string) =>
     minute: "2-digit",
   });
 
+const formatDueDate = (date: string) => {
+  const [year, month, day] = date.split("-").map(Number);
+
+  return new Date(year, month - 1, day).toLocaleDateString(
+    "en-GB",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }
+  );
+};
+
 function NotificationDropdown({
   isLoading,
   data,
@@ -36,28 +51,35 @@ function NotificationDropdown({
 
   const newRecords = data?.newRecords ?? [];
 
+  const pendingFollowUps =
+    data?.pendingFollowUps ?? [];
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const hasNotifications =
     upcomingAppointments.length > 0 ||
     vaccinationsDueToday.length > 0 ||
-    newRecords.length > 0;
+    newRecords.length > 0 ||
+    pendingFollowUps.length > 0;
 
   return (
     <div
       className="
-  absolute
-  right-0
-  top-full
-  z-50
-  mt-2
-  w-[380px]
-  max-h-96
-  overflow-y-auto
-  rounded-xl
-  border
-  border-slate-200
-  bg-white
-  shadow-xl
-"
+        absolute
+        right-0
+        top-full
+        z-50
+        mt-2
+        w-[380px]
+        max-h-96
+        overflow-y-auto
+        rounded-xl
+        border
+        border-slate-200
+        bg-white
+        shadow-xl
+      "
     >
       {isLoading && (
         <div className="flex items-center justify-center gap-2 p-6 text-sm text-slate-500">
@@ -78,6 +100,69 @@ function NotificationDropdown({
 
       {!isLoading && hasNotifications && (
         <>
+          {pendingFollowUps.length > 0 && (
+            <section className="border-b border-slate-100">
+              <h3 className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Follow-up Reminders
+              </h3>
+
+              {pendingFollowUps.map((followUp) => {
+                const [year, month, day] =
+                  followUp.dueDate.split("-").map(Number);
+
+                const dueDate = new Date(
+                  year,
+                  month - 1,
+                  day
+                );
+
+                const isOverdue = dueDate < today;
+
+                return (
+                  <Link
+                    key={followUp.id}
+                    to={`/pets/${followUp.petId}`}
+                    onClick={onClose}
+                    className="flex items-start gap-3 px-4 py-3 transition hover:bg-cyan-50"
+                  >
+                    <Clock3
+                      size={18}
+                      className={`mt-0.5 ${
+                        isOverdue
+                          ? "text-red-600"
+                          : "text-amber-600"
+                      }`}
+                    />
+
+                    <div>
+                      <p className="font-medium text-slate-800">
+                        {followUp.petName}
+                      </p>
+
+                      <p className="text-sm text-slate-500">
+                        {followUp.procedureType.replace(
+                          /_/g,
+                          " "
+                        )}
+                      </p>
+
+                      <p
+                        className={`text-xs ${
+                          isOverdue
+                            ? "text-red-600"
+                            : "text-amber-600"
+                        }`}
+                      >
+                        {isOverdue ? "Overdue" : "Due"}:{" "}
+                        {formatDueDate(followUp.dueDate)}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </section>
+          )}
+
           {upcomingAppointments.length > 0 && (
             <section className="border-b border-slate-100">
               <h3 className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -124,8 +209,8 @@ function NotificationDropdown({
 
               {vaccinationsDueToday.map((vaccination) => (
                 <Link
-                  key={vaccination.petId}
-                  to="/appointments"
+                  key={`${vaccination.petId}-${vaccination.vaccineType}`}
+                  to={`/pets/${vaccination.petId}`}
                   onClick={onClose}
                   className="flex items-start gap-3 px-4 py-3 transition hover:bg-cyan-50"
                 >

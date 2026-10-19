@@ -11,12 +11,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(properties = {
         "app.rate-limit.enabled=true",
         "app.rate-limit.auth.capacity=3",
         "app.rate-limit.auth.refill-period-seconds=60"
 })
+@ActiveProfiles("test")
 @AutoConfigureMockMvc
 class RateLimitingFilterTest {
 

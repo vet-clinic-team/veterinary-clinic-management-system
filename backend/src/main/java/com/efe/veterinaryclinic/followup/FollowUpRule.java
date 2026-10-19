@@ -93,6 +93,22 @@ public class FollowUpRule {
         this.repeatIntervalUnit = null;
     }
 
+public void updateDetails(String name, boolean active) {
+    if (name == null || name.isBlank()) {
+        throw new IllegalArgumentException(
+                "Rule name is required"
+        );
+    }
+
+    this.name = name.trim();
+    this.active = active;
+}
+
+public void clearSteps() {
+    this.steps.clear();
+}
+
+
     public void addStep(
             int stepNumber,
             int intervalValue,

@@ -23,7 +23,9 @@ public record VisitResponse(
         LocalDateTime reminderSentAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
-        LocalDate suggestedFollowUpDate
+        LocalDate suggestedFollowUpDate,
+        String procedureType,
+        Long treatmentPlanId
 ) {
 
     public static VisitResponse from(Visit visit) {
@@ -44,7 +46,11 @@ public record VisitResponse(
                 visit.getReminderSentAt(),
                 visit.getCreatedAt(),
                 visit.getUpdatedAt(),
-                visit.getSuggestedFollowUpDate()
+                visit.getSuggestedFollowUpDate(),
+                visit.getProcedureType(),
+                visit.getTreatmentPlan() != null
+                        ? visit.getTreatmentPlan().getId()
+                        : null
         );
     }
 }

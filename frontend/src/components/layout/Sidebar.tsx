@@ -1,3 +1,4 @@
+
 import {
   LayoutDashboard,
   Users,
@@ -5,9 +6,11 @@ import {
   Stethoscope,
   CalendarDays,
   Syringe,
+  ClipboardList,
   Receipt,
   LifeBuoy,
 } from "lucide-react";
+
 import { NavLink, useNavigate } from "react-router-dom";
 
 const menuItems = [
@@ -42,6 +45,11 @@ const menuItems = [
     icon: Syringe,
   },
   {
+    name: "Procedure Catalog",
+    path: "/procedure-catalog",
+    icon: ClipboardList,
+  },
+  {
     name: "Invoices",
     path: "/invoices",
     icon: Receipt,
@@ -59,6 +67,7 @@ function Sidebar() {
         w-[260px]
         shrink-0
         flex-col
+        overflow-hidden
         bg-slate-950
         text-white
       "
@@ -66,24 +75,20 @@ function Sidebar() {
       {/* Logo */}
       <div
         className="
+          shrink-0
           border-b
           border-slate-800
-          px-6
-          py-4
+          px-5
+          py-3
         "
       >
-        <div
-          className="
-            flex
-            items-center
-            gap-3
-          "
-        >
+        <div className="flex items-center gap-3">
           <div
             className="
               flex
               h-11
               w-11
+              shrink-0
               items-center
               justify-center
               rounded-2xl
@@ -94,7 +99,9 @@ function Sidebar() {
           </div>
 
           <div>
-            <h1 className="text-2xl font-bold">PawCare</h1>
+            <h1 className="text-2xl font-bold">
+              PawCare
+            </h1>
 
             <p className="text-sm text-slate-400">
               Veterinary Clinic
@@ -106,9 +113,11 @@ function Sidebar() {
       {/* Navigation */}
       <nav
         className="
-          space-y-1
+          min-h-0
+          flex-1
+          space-y-0.5
           px-4
-          py-4
+          py-3
         "
       >
         {menuItems.map((item) => {
@@ -126,9 +135,9 @@ function Sidebar() {
                 rounded-xl
                 px-4
                 py-2.5
+                text-base
                 font-medium
                 transition-colors
-
                 ${
                   isActive
                     ? "bg-cyan-600 text-white"
@@ -137,7 +146,7 @@ function Sidebar() {
                 `
               }
             >
-              <Icon size={22} />
+              <Icon size={21} className="shrink-0" />
               <span>{item.name}</span>
             </NavLink>
           );
@@ -147,7 +156,7 @@ function Sidebar() {
       {/* Help Card */}
       <div
         className="
-          mt-auto
+          shrink-0
           px-4
           pb-3
         "
@@ -161,10 +170,10 @@ function Sidebar() {
         >
           <div
             className="
-              mb-3
+              mb-2
               flex
-              h-10
-              w-10
+              h-9
+              w-9
               items-center
               justify-center
               rounded-full
@@ -172,7 +181,7 @@ function Sidebar() {
             "
           >
             <LifeBuoy
-              size={20}
+              size={19}
               className="text-cyan-400"
             />
           </div>
@@ -181,19 +190,12 @@ function Sidebar() {
             Need Help?
           </h3>
 
-          <p
-            className="
-              mt-1
-              text-sm
-              leading-5
-              text-slate-400
-            "
-          >
-            Contact the clinic administrator if you need
-            assistance.
+          <p className="mt-1 text-xs leading-4 text-slate-400">
+            Contact the clinic administrator if you need assistance.
           </p>
 
           <button
+            type="button"
             onClick={() => navigate("/support")}
             className="
               mt-3
@@ -201,6 +203,7 @@ function Sidebar() {
               rounded-xl
               bg-cyan-600
               py-2
+              text-sm
               font-semibold
               transition-colors
               hover:bg-cyan-500
@@ -215,3 +218,6 @@ function Sidebar() {
 }
 
 export default Sidebar;
+
+
+

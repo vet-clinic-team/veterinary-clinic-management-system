@@ -65,5 +65,18 @@ public interface VaccinationRepository extends JpaRepository<Vaccination, Long> 
 
     @Query("SELECT COUNT(DISTINCT v.pet.id) FROM Vaccination v")
     long countDistinctPet();
+    
+    // Find pets with existing vaccinations of a specific type and species.
+    @Query("""
+        SELECT DISTINCT v.pet.id
+        FROM Vaccination v
+        WHERE UPPER(v.vaccineType) = UPPER(:vaccineType)
+          AND UPPER(v.pet.species) = UPPER(:species)
+        """)
+    List<Long> findPetIdsByVaccineTypeAndSpecies(
+            String vaccineType,
+            String species
+    );
+
 }
 

@@ -347,6 +347,37 @@ public class FollowUpService {
                 FollowUpStatus.PENDING
         );
     }
+    
+    // Manually reschedule a pending follow-up.
+    @Transactional
+    public FollowUp rescheduleManually(
+            Long followUpId,
+            LocalDate newDueDate) {
+
+        FollowUp followUp = followUpRepository.findById(followUpId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Follow-up not found: " + followUpId
+                        )
+                );
+
+        if (followUp.getStatus() != FollowUpStatus.PENDING) {
+            throw new ConflictException(
+                    "Only pending follow-ups can be rescheduled."
+            );
+        }
+
+        if (newDueDate == null) {
+            throw new IllegalArgumentException(
+                    "New due date must not be null."
+            );
+        }
+
+        followUp.rescheduleManually(newDueDate);
+
+        return followUp;
+    }
+
 
     // Manually complete a pending follow-up.
     @Transactional

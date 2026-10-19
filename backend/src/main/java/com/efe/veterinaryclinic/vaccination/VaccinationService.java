@@ -1,4 +1,3 @@
-
 package com.efe.veterinaryclinic.vaccination;
 
 import com.efe.veterinaryclinic.common.dto.PageResponse;
@@ -16,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.efe.veterinaryclinic.catalog.ProcedureCatalogService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,18 +29,23 @@ public class VaccinationService {
     private final PetRepository petRepository;
     private final FollowUpRuleService followUpRuleService;
     private final FollowUpService followUpService;
+    private final ProcedureCatalogService catalogService;
 
-    public VaccinationService(
-            VaccinationRepository vaccinationRepository,
-            PetRepository petRepository,
-            FollowUpRuleService followUpRuleService,
-            FollowUpService followUpService) {
+    
+public VaccinationService(
+        VaccinationRepository vaccinationRepository,
+        PetRepository petRepository,
+        FollowUpRuleService followUpRuleService,
+        FollowUpService followUpService,
+        ProcedureCatalogService catalogService) {
 
-        this.vaccinationRepository = vaccinationRepository;
-        this.petRepository = petRepository;
-        this.followUpRuleService = followUpRuleService;
-        this.followUpService = followUpService;
-    }
+    this.vaccinationRepository = vaccinationRepository;
+    this.petRepository = petRepository;
+    this.followUpRuleService = followUpRuleService;
+    this.followUpService = followUpService;
+    this.catalogService = catalogService;
+}
+
 
     @Transactional
     public VaccinationResponse create(
@@ -50,10 +55,26 @@ public class VaccinationService {
         checkWritePermission(requesterRole);
 
         Pet pet = findPetOrThrow(request.petId());
+        
+String species = "OTHER".equalsIgnoreCase(pet.getSpecies())
+        ? pet.getSpeciesNote()
+        : pet.getSpecies();
+
+var procedure = catalogService.requireActive(
+        request.vaccineType(),
+        species
+);
+
+if (!"VACCINATION".equalsIgnoreCase(procedure.getCategory())) {
+    throw new IllegalArgumentException(
+            "Selected procedure is not a vaccination"
+    );
+}
+
 
         Vaccination vaccination = new Vaccination(
                 pet,
-                request.vaccineType(),
+                procedure.getCode(),
                 request.administeredAt(),
                 request.lotNumber(),
                 request.administeredBy(),
@@ -65,14 +86,16 @@ public class VaccinationService {
 
         recalculateVaccinationSchedule(
                 pet.getId(),
-                request.vaccineType()
+                procedure.getCode()
         );
 
-        followUpService.completePreviousVaccinationFollowUp(
-                pet.getId(),
-                request.vaccineType(),
-                request.administeredAt()
-        );
+        
+followUpService.completePreviousVaccinationFollowUp(
+        pet.getId(),
+        procedure.getCode(),
+        request.administeredAt()
+);
+
 
         return VaccinationResponse.from(saved);
     }
@@ -105,55 +128,83 @@ public class VaccinationService {
         );
     }
 
-    @Transactional
-    public VaccinationResponse update(
-            Long id,
-            VaccinationRequest request,
-            Role requesterRole) {
+    
+@Transactional
+public VaccinationResponse update(
+        Long id,
+        VaccinationRequest request,
+        Role requesterRole) {
 
-        checkWritePermission(requesterRole);
+    checkWritePermission(requesterRole);
 
-        Vaccination vaccination = findVaccinationOrThrow(id);
+    Vaccination vaccination = findVaccinationOrThrow(id);
 
-        Long oldPetId = vaccination.getPet().getId();
-        String oldVaccineType = vaccination.getVaccineType();
+    Long oldPetId = vaccination.getPet().getId();
+    String oldVaccineType = vaccination.getVaccineType();
 
-        Pet newPet = findPetOrThrow(request.petId());
+    Pet newPet = findPetOrThrow(request.petId());
 
-        vaccination.update(
-                newPet,
+    String species = "OTHER".equalsIgnoreCase(newPet.getSpecies())
+            ? newPet.getSpeciesNote()
+            : newPet.getSpecies();
+
+    String vaccineCode;
+
+    boolean unchangedLegacyType =
+            Objects.equals(oldPetId, newPet.getId())
+            && oldVaccineType.equalsIgnoreCase(
+                    request.vaccineType().trim()
+            );
+
+    if (unchangedLegacyType) {
+        // Preserve existing records, including legacy vaccine types.
+        vaccineCode = oldVaccineType;
+    } else {
+        var procedure = catalogService.requireActive(
                 request.vaccineType(),
-                request.administeredAt(),
-                request.lotNumber(),
-                request.administeredBy(),
-                null
+                species
         );
 
-        Vaccination saved =
-                vaccinationRepository.saveAndFlush(vaccination);
-
-        boolean groupChanged =
-                !Objects.equals(oldPetId, newPet.getId())
-                        || !oldVaccineType.equalsIgnoreCase(
-                                request.vaccineType()
-                        );
-
-        // Recalculate the previous group if pet or vaccine changes.
-        if (groupChanged) {
-            recalculateVaccinationSchedule(
-                    oldPetId,
-                    oldVaccineType
+        if (!"VACCINATION".equalsIgnoreCase(procedure.getCategory())) {
+            throw new IllegalArgumentException(
+                    "Selected procedure is not a vaccination"
             );
         }
 
-        // Recalculate the new group.
-        recalculateVaccinationSchedule(
-                newPet.getId(),
-                request.vaccineType()
-        );
-
-        return VaccinationResponse.from(saved);
+        vaccineCode = procedure.getCode();
     }
+
+    vaccination.update(
+            newPet,
+            vaccineCode,
+            request.administeredAt(),
+            request.lotNumber(),
+            request.administeredBy(),
+            null
+    );
+
+    Vaccination saved =
+            vaccinationRepository.saveAndFlush(vaccination);
+
+    boolean groupChanged =
+            !Objects.equals(oldPetId, newPet.getId())
+                    || !oldVaccineType.equalsIgnoreCase(vaccineCode);
+
+    if (groupChanged) {
+        recalculateVaccinationSchedule(
+                oldPetId,
+                oldVaccineType
+        );
+    }
+
+    recalculateVaccinationSchedule(
+            newPet.getId(),
+            vaccineCode
+    );
+
+    return VaccinationResponse.from(saved);
+}
+
 
     @Transactional
     public void delete(
@@ -179,6 +230,25 @@ public class VaccinationService {
                 vaccineType
         );
     }
+    
+
+@Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+public void recalculateForNewRule(String species, String vaccineType) {
+
+
+    List<Long> petIds =
+            vaccinationRepository.findPetIdsByVaccineTypeAndSpecies(
+                    vaccineType,
+                    species
+            );
+
+    System.out.println("RECALCULATION PET IDS: " + petIds);
+
+    for (Long petId : petIds) {
+        recalculateVaccinationSchedule(petId, vaccineType);
+    }
+}
+
 
     private void recalculateVaccinationSchedule(
             Long petId,
@@ -198,7 +268,14 @@ public class VaccinationService {
                     .calculateNextDueDateForUpdate(
                             vaccination.getId(),
                             pet.getId(),
-                            pet.getSpecies(),
+                            "OTHER".equalsIgnoreCase(pet.getSpecies())
+        ? (pet.getSpeciesNote() == null
+                || pet.getSpeciesNote().isBlank()
+                ? "OTHER"
+                : pet.getSpeciesNote().trim())
+        : pet.getSpecies(),
+                            
+
                             vaccination.getVaccineType(),
                             vaccination.getAdministeredAt().toLocalDate()
                     )

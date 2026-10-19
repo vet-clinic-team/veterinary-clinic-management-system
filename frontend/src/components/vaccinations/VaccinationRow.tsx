@@ -47,8 +47,10 @@ function VaccinationRow({
       </td>
 
       <td className="px-6 py-4 text-slate-600">
-        {formatDate(vaccination.nextDueDate)}
-      </td>
+  {vaccination.nextDueDate
+    ? formatDate(vaccination.nextDueDate)
+    : "Not scheduled"}
+</td>
 
       <td className="px-6 py-4 text-slate-600">
         {vaccination.administeredBy}

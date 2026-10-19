@@ -11,6 +11,8 @@ import UpdateStatusDialog from "../../components/appointments/UpdateStatusDialog
 import MedicalNotesDialog from "../../components/appointments/MedicalNotesDialog";
 import AppointmentCalendar from "../../components/appointments/AppointmentCalendar";
 import toast from "react-hot-toast";
+import { getPendingFollowUps } from "../../services/followUpService";
+import type { FollowUp } from "../../types/followUp";
 
 import Modal from "../../components/ui/Modal";
 
@@ -38,6 +40,8 @@ import type { Pet } from "../../types/pet";
 import type { Veterinarian } from "../../types/veterinarian";
 
 function AppointmentsPage() {
+  const [calendarFollowUps, setCalendarFollowUps] =
+  useState<FollowUp[]>([]);
   const navigate = useNavigate();
 
   const [appointments, setAppointments] =
@@ -283,6 +287,15 @@ function AppointmentsPage() {
       toast.error(message);
     }
   };
+  const fetchCalendarFollowUps = async () => {
+  try {
+    const data = await getPendingFollowUps();
+    setCalendarFollowUps(data);
+  } catch (error) {
+    console.error("Failed to load calendar follow-ups:", error);
+    toast.error("Failed to load calendar follow-ups.");
+  }
+};
 
   const fetchPets = async () => {
     try {
@@ -331,10 +344,11 @@ function AppointmentsPage() {
   }, []);
 
   useEffect(() => {
-    if (viewMode === "calendar") {
-      fetchCalendarVisits();
-    }
-  }, [viewMode]);
+  if (viewMode === "calendar") {
+    fetchCalendarVisits();
+    fetchCalendarFollowUps();
+  }
+}, [viewMode]);
 
   const handleAdd = () => {
     setSelectedAppointment(null);
@@ -369,13 +383,17 @@ function AppointmentsPage() {
     );
   };
 
-  const handleMedicalNotes = (
-    appointment: Visit
-  ) => {
-    setMedicalAppointment(
-      appointment
-    );
-  };
+  
+const handleMedicalNotes = (
+  appointment: Visit
+) => {
+  console.log("Medical Notes visit:", appointment);
+
+  setMedicalAppointment(
+    appointment
+  );
+};
+
 
   const findAlternativeSlots =
     async (
@@ -836,18 +854,13 @@ function AppointmentsPage() {
                     }
                   />
                 ) : (
-                  <AppointmentCalendar
-                    appointments={
-                      calendarAppointments
-                    }
-                    pets={pets}
-                    veterinarians={
-                      veterinarians
-                    }
-                    onUpdate={
-                      handleCalendarUpdate
-                    }
-                  />
+                 <AppointmentCalendar
+  appointments={calendarAppointments}
+  followUps={calendarFollowUps}
+  pets={pets}
+  veterinarians={veterinarians}
+  onUpdate={handleCalendarUpdate}
+/>
                 )}
 
                 {viewMode ===
@@ -1034,16 +1047,39 @@ function AppointmentsPage() {
         >
           {medicalAppointment && (
             <MedicalNotesDialog
-              initialValues={{
-                diagnosis:
-                  medicalAppointment.diagnosis ??
-                  "",
-                treatmentNotes:
-                  medicalAppointment.treatmentNotes ??
-                  "",
-                followUpDate:
-                  medicalAppointment.followUpDate,
-              }}
+            
+petSpecies={
+  (() => {
+    const pet = pets.find(
+      (item) => item.id === medicalAppointment.petId
+    );
+
+    if (!pet) return undefined;
+
+    if (pet.species === "OTHER") {
+      return pet.speciesNote?.trim() || "OTHER";
+    }
+
+    return pet.species;
+  })()
+}
+
+              
+
+
+initialValues={{
+  diagnosis: medicalAppointment.diagnosis ?? "",
+  treatmentNotes: medicalAppointment.treatmentNotes ?? "",
+  followUpDate: medicalAppointment.followUpDate,
+  procedureType: medicalAppointment.procedureType,
+  treatmentPlanId: medicalAppointment.treatmentPlanId,
+  useAutomaticFollowUp:
+    medicalAppointment.suggestedFollowUpDate != null &&
+    medicalAppointment.followUpDate ===
+      medicalAppointment.suggestedFollowUpDate,
+}}
+
+
               isLoading={
                 loading
               }

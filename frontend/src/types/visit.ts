@@ -1,3 +1,4 @@
+
 export type VisitStatus =
   | "SCHEDULED"
   | "CHECKED_IN"
@@ -15,6 +16,16 @@ export interface Visit {
   diagnosis: string | null;
   treatmentNotes: string | null;
   followUpDate: string | null;
+
+  // Automatically suggested next follow-up date.
+  suggestedFollowUpDate: string | null;
+
+  // Procedure used for automatic follow-up calculation.
+  procedureType: string | null;
+
+  // Treatment plan associated with this visit.
+  treatmentPlanId: number | null;
+
   warnings: string[];
   createdAt: string;
   updatedAt: string;
@@ -27,8 +38,7 @@ export interface CreateVisitRequest {
   chiefComplaint: string;
 }
 
-export type UpdateVisitRequest =
-  CreateVisitRequest;
+export type UpdateVisitRequest = CreateVisitRequest;
 
 export interface UpdateVisitStatusRequest {
   status: VisitStatus;
@@ -38,6 +48,15 @@ export interface UpdateMedicalNotesRequest {
   diagnosis: string;
   treatmentNotes: string;
   followUpDate: string | null;
+
+  // Procedure used for automatic follow-up calculation.
+  procedureType?: string | null;
+
+  // Enable or disable automatic follow-up suggestions.
+  useAutomaticFollowUp?: boolean;
+
+  // Existing treatment course, if selected.
+  treatmentPlanId?: number | null;
 }
 
 export interface VisitFilters {
@@ -49,3 +68,4 @@ export interface VisitFilters {
   to?: string;
   status?: VisitStatus;
 }
+
